@@ -176,6 +176,7 @@ namespace ApartmanAidatTakip.Controllers
             Session["Aktif"] = "Anasayfa";
 
             Sabit();
+            Session["DaireID"] = "0";
 
             int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
             DateTime nowtime = DateTime.Now;

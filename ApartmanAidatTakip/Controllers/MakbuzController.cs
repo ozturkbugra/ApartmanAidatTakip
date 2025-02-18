@@ -93,6 +93,7 @@ namespace ApartmanAidatTakip.Controllers
             bosmakbuzsil();
             Session["Aktif"] = "Makbuz";
             Sabit();
+            Session["DaireID"] = "0";
             HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
             int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
             ViewBag.Daireler = db.Dairelers.Where(x => x.BinaID == BinaID && x.Borc > 0).OrderBy(x => x.DaireNo).ToList();
