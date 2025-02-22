@@ -668,7 +668,7 @@ namespace ApartmanAidatTakip.Controllers
             receiptInfoCell.Border = PdfPCell.NO_BORDER;
             receiptInfoCell.PaddingTop = -20f; // Yukarıya yaklaştır
             receiptInfoCell.VerticalAlignment = Element.ALIGN_TOP;
-            receiptInfoCell.AddElement(new Paragraph("Makbuz Tarihi: " + DateTime.Now.ToString("dd/MM/yyyy"), subTitleFont));
+            receiptInfoCell.AddElement(new Paragraph("Makbuz Tarihi: " + makbuzsorgu1.MakbuzTarihi.Value.ToString("dd/MM/yyyy"), subTitleFont));
             receiptInfoCell.AddElement(new Paragraph("Makbuz No: " + makbuzsorgu1.MakbuzNo, subTitleFont));
             receiptInfoCell.HorizontalAlignment = Element.ALIGN_RIGHT;
             headerTable.AddCell(receiptInfoCell);

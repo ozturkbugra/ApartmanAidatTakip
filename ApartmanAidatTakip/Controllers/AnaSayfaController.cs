@@ -1448,7 +1448,7 @@ namespace ApartmanAidatTakip.Controllers
 
             PdfPCell receiptInfoCell = new PdfPCell();
             receiptInfoCell.Border = PdfPCell.NO_BORDER;
-            receiptInfoCell.AddElement(new Paragraph("Tarih: " + DateTime.Now.ToString("dd/MM/yyyy"), subTitleFont));
+            receiptInfoCell.AddElement(new Paragraph("Tarih: " + kontrol.GiderTarih.Value.ToString("dd/MM/yyyy"), subTitleFont));
             receiptInfoCell.AddElement(new Paragraph("Makbuz No: " + gider.GiderNo, subTitleFont));
             receiptInfoCell.HorizontalAlignment = Element.ALIGN_RIGHT;
             headerTable.AddCell(receiptInfoCell);
@@ -1873,7 +1873,7 @@ namespace ApartmanAidatTakip.Controllers
 
             PdfPCell receiptInfoCell = new PdfPCell();
             receiptInfoCell.Border = PdfPCell.NO_BORDER;
-            receiptInfoCell.AddElement(new Paragraph("Tarih: " + DateTime.Now.ToString("dd/MM/yyyy"), subTitleFont));
+            receiptInfoCell.AddElement(new Paragraph("Tarih: " + kontrol.TahsilatTarih.Value.ToString("dd/MM/yyyy"), subTitleFont));
             receiptInfoCell.AddElement(new Paragraph("Makbuz No: " + tahsilat.TahsilatNo, subTitleFont));
             receiptInfoCell.HorizontalAlignment = Element.ALIGN_RIGHT;
             headerTable.AddCell(receiptInfoCell);
