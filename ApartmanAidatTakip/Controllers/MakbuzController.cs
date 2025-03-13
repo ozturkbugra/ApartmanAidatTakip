@@ -134,6 +134,11 @@ namespace ApartmanAidatTakip.Controllers
                 return RedirectToAction("Index", "Makbuz");
             }
 
+            if(makbuz.DaireID == 0)
+            {
+                return RedirectToAction("Index", "Makbuz");
+
+            }
 
             // Yeni makbuz bilgilerini ayarla
             makbuz.BinaID = BinaID;

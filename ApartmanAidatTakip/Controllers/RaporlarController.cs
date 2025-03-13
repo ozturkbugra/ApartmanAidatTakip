@@ -1217,7 +1217,7 @@ namespace ApartmanAidatTakip.Controllers
             Sabit();
             HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
             int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
-            ViewBag.Bakiyeler = db.Kasas.Where(x=> x.BinaID == BinaID).OrderBy(x => x.KasaID).ToList();
+            ViewBag.Bakiyeler = db.Kasas.Where(x=> x.BinaID == BinaID).OrderByDescending(x => x.KasaID).ToList();
             return View();
         }
     }

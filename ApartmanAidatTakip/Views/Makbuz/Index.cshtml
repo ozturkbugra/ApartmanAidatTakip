@@ -14,14 +14,15 @@
 {
     <form action="/Makbuz/Olustur" method="post">
         <label>Daire No:</label>
-        <select name="DaireID" class="form-select">
+        <select name="DaireID" class="form-select filter">
+            <option value="0">Daire Sakinini Seçiniz</option>
             @foreach (var item in ViewBag.Daireler)
             {
                 <option value="@item.DaireNo"> @item.DaireNo Numara - @item.AdSoyad (Borç: @item.Borc ₺)</option>
             }
 
         </select>
-        <br />
+        <br /><br />
 
         <button type="submit" class="btn btn-success">Makbuz Oluştur</button>
 
@@ -148,3 +149,4 @@
         }
     }
 </script>
+
