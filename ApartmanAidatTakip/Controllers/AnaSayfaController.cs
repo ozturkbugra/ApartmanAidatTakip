@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Helpers;
+using OfficeOpenXml; // EPPlus kütüphanesi
 using System.Web.Mvc;
 
 namespace ApartmanAidatTakip.Controllers
@@ -416,6 +417,84 @@ namespace ApartmanAidatTakip.Controllers
 
             return RedirectToAction("Sakinler", "AnaSayfa");
         }
+
+
+        [HttpPost]
+        public ActionResult SakinEkleExcel(HttpPostedFileBase file)
+        {
+            HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
+            int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
+            int KullaniciID = Convert.ToInt32(userCookie.Values["KullaniciID"]);
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+            try
+            {
+                if (file != null && file.ContentLength > 0)
+                {
+                    using (var package = new ExcelPackage(file.InputStream))
+                    {
+                        var worksheet = package.Workbook.Worksheets.First();
+                        int rowCount = worksheet.Dimension.Rows;
+
+                        var eklenensakinsayisi = db.Dairelers.Count(x => x.BinaID == BinaID);
+                        var bina = db.Binalars.FirstOrDefault(x => x.BinaID == BinaID);
+                        int olmasıgerekensakinsayisi = bina?.DaireSayisi ?? 0;
+
+                        if (eklenensakinsayisi + (rowCount - 1) > olmasıgerekensakinsayisi)
+                        {
+                            TempData["Hata"] = "Fazla daire sakini eklemeye çalıştınız.";
+                            return RedirectToAction("Sakinler", "AnaSayfa");
+                        }
+
+                        List<Daireler> daireListesi = new List<Daireler>();
+
+                        for (int row = 2; row <= rowCount; row++) // 1. satır başlık olduğu için 2'den başlıyoruz
+                        {
+                            eklenensakinsayisi++; // Her yeni eklemede artır
+
+                            var daire = new Daireler
+                            {
+                                DaireNo = Convert.ToInt32(worksheet.Cells[row, 1].Value), // Excel'den DaireNo al
+                                AdSoyad = worksheet.Cells[row, 2].Value?.ToString() ?? "", // Excel'den AdSoyad al
+                                BinaID = BinaID,
+                                Telefon = worksheet.Cells[row, 3].Value?.ToString() ?? "", // Sabit değer
+                                TC = worksheet.Cells[row, 4].Value?.ToString() ?? "", // Sabit değer
+                                DaireDurum = worksheet.Cells[row, 5].Value?.ToString() ?? "", // Sabit değer
+                                Borc = 0, // Sabit değer
+                                YonetimdeMi = "H" // Sabit değer
+                            };
+
+                            daireListesi.Add(daire);
+                        }
+
+                        db.Dairelers.AddRange(daireListesi);
+                        db.SaveChanges();
+
+                        // Hareketler Tablosuna Kayıt
+                        Hareketler hareketler = new Hareketler()
+                        {
+                            BinaID = BinaID,
+                            KullaniciID = KullaniciID,
+                            OlayAciklama = $"{daireListesi.Count} adet daire sakini eklendi",
+                            Tarih = DateTime.Now,
+                            Tur = "Toplu Ekleme",
+                        };
+                        db.Hareketlers.Add(hareketler);
+                        db.SaveChanges();
+
+                        TempData["Basarili"] = "Toplu sakin ekleme başarılı.";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                string errmsg = ex.Message;
+                TempData["Hata"] = errmsg;
+            }
+
+            return RedirectToAction("Sakinler", "AnaSayfa");
+        }
+
 
         public ActionResult SakinDuzenle(int id)
         {
