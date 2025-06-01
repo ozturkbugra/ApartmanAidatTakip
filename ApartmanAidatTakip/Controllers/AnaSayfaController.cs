@@ -218,7 +218,7 @@ namespace ApartmanAidatTakip.Controllers
             var aygider = db.Giders.Where(x=> x.BinaID == BinaID && x.Durum == "A" && x.GiderTarih.Value.Month == ay && x.GiderTarih.Value.Year == yil).Sum(x => (decimal?)x.GiderTutar) ?? 0;
             var makbuzgelir = db.Makbuzs.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.MakbuzTarihi.Value.Month == ay && x.MakbuzTarihi.Value.Year == yil).Sum(x => (decimal?)x.MabuzTutar) ?? 0;
             var tahsilatgelir = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Month == ay && x.TahsilatTarih.Value.Year == yil).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
-            var demirbasgider = db.Giders.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.GiderTuruID == 6  && x.GiderTarih.Value.Month == ay && x.GiderTarih.Value.Year == yil).Sum(x => (decimal?)x.GiderTutar) ?? 0;
+            var demirbasgider = db.Giders.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.GiderTuruID == 6).Sum(x => (decimal?)x.GiderTutar) ?? 0;
 
             ViewBag.aygelir = makbuzgelir + tahsilatgelir;
             ViewBag.aygider = aygider;
