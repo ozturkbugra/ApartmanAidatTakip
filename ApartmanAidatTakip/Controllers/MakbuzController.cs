@@ -855,18 +855,18 @@ namespace ApartmanAidatTakip.Controllers
 
             if (DaireNo != null)
             {
-                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.DaireNo == DaireNo && x.Durum == "A").ToList();
+                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.DaireNo == DaireNo && x.Durum == "A").OrderByDescending(x=> x.MakbuzID).ToList();
                 ViewBag.DaireNo = DaireNo;
 
             }
             if (MakbuzNo != null)
             {
-                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.MakbuzNo == MakbuzNo && x.Durum == "A").ToList();
+                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.MakbuzNo == MakbuzNo && x.Durum == "A").OrderByDescending(x => x.MakbuzID).ToList();
                 ViewBag.MakbuzNo = MakbuzNo;
             }
             if (MakbuzNo != null && DaireNo != null)
             {
-                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.MakbuzNo == MakbuzNo && x.DaireNo == DaireNo && x.Durum == "A").ToList();
+                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.MakbuzNo == MakbuzNo && x.DaireNo == DaireNo && x.Durum == "A").OrderByDescending(x => x.MakbuzID).ToList();
                 ViewBag.DaireNo = DaireNo;
                 ViewBag.MakbuzNo = MakbuzNo;
             }
