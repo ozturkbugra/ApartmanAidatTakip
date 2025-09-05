@@ -126,44 +126,66 @@ namespace ApartmanAidatTakip.Controllers
         [HttpPost]
         public ActionResult Olustur(Makbuz makbuz)
         {
-            HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
-            int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
-            if (Session["DonemSorgu"].ToString() == "0")
+            var userCookie = Request.Cookies["KullaniciBilgileri"];
+            if (userCookie == null || string.IsNullOrEmpty(userCookie.Values["BinaID"]))
             {
-                TempData["Hata"] = DateTime.Now.ToString("MMMM") + " Dönemini eklemediğiniz için bu işlemi yapamazsınız";
+                return RedirectToAction("Login", "AnaSayfa");
+            }
+
+            int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
+
+            if (Session["DonemSorgu"] == null || Session["DonemSorgu"].ToString() == "0")
+            {
+                TempData["Hata"] = DateTime.Now.ToString("MMMM") +
+                                   " Dönemini eklemediğiniz için bu işlemi yapamazsınız";
                 return RedirectToAction("Index", "Makbuz");
             }
 
-            if(makbuz.DaireID == 0)
+            if (makbuz == null || makbuz.DaireID == 0)
             {
                 return RedirectToAction("Index", "Makbuz");
-
             }
 
             // Yeni makbuz bilgilerini ayarla
             makbuz.BinaID = BinaID;
             makbuz.Durum = "A";
             makbuz.OnayliMi = false;
-            var s = db.Dairelers.Where(x => x.BinaID == BinaID && x.DaireNo == makbuz.DaireID).FirstOrDefault();
+
+            var s = db.Dairelers
+                      .FirstOrDefault(x => x.BinaID == BinaID && x.DaireNo == makbuz.DaireID);
+
+            if (s == null)
+            {
+                TempData["Hata"] = "Daire bulunamadı!";
+                return RedirectToAction("Index", "Makbuz");
+            }
+
             makbuz.DaireID = s.DaireID;
             makbuz.MakbuzTarihi = DateTime.Now.Date;
             makbuz.MabuzTutar = 0;
 
-
-            // Yeni makbuzu veritabanına ekle
             db.Makbuzs.Add(makbuz);
             db.SaveChanges();
 
-            // En son eklenen makbuzun ID ve DaireID bilgilerini al
-            var sonmakbuzid = db.Makbuzs.Where(x => x.BinaID == BinaID).OrderByDescending(x => x.MakbuzID).FirstOrDefault();
-            Session["MakbuzID"] = sonmakbuzid.MakbuzID;
-            Session["DaireID"] = sonmakbuzid.DaireID;
-           
+            var sonmakbuz = db.Makbuzs
+                              .Where(x => x.BinaID == BinaID)
+                              .OrderByDescending(x => x.MakbuzID)
+                              .FirstOrDefault();
+
+            if (sonmakbuz == null)
+            {
+                TempData["Hata"] = "Makbuz kaydedilemedi!";
+                return RedirectToAction("Index", "Makbuz");
+            }
+
+            Session["MakbuzID"] = sonmakbuz.MakbuzID;
+            Session["DaireID"] = sonmakbuz.DaireID;
 
             MakbuzNoDuzenle();
-            // Başka bir aksiyona yönlendir
+
             return RedirectToAction("Ekle", "Makbuz");
         }
+
 
         public ActionResult Ekle(int? ID)
         {

@@ -1315,6 +1315,8 @@ namespace ApartmanAidatTakip.Controllers
                 TempData["Hata"] = "Bir Hata Oluştu!";
             }
 
+            Sabit();
+
             return View();
 
         }
