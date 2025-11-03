@@ -14,7 +14,7 @@
 <div class="card-body">
     <h5 class="card-title">Daire Sakinleri Listesi</h5>
     <div class="table-responsive">
-        <table class="table table-borderless datatable">
+        <table class="table table-borderless table-striped datatable">
             <thead>
                 <tr>
 
@@ -24,6 +24,7 @@
                     <th scope="col">TC</th>
                     <th scope="col">Durum</th>
                     <th scope="col">Borç</th>
+                    <th scope="col"></th>
                 </tr>
             </thead>
             <tbody>
@@ -31,14 +32,17 @@
                 {
 
                     <tr>
-
+                        @{ 
+                            string link = "https://wa.me/+90" + item.Telefon + "?text=Merhaba,%20"+ item.Borc.ToString("N0")+ "%20TL%20aidat%20borcunuz%20bulunmaktadır%20";
+                        }
+ 
                         <td>@item.DaireNo</td>
                         <td>@item.AdSoyad</td>
                         <td>@item.Telefon</td>
                         <td>@item.TC</td>
                         <td>@item.DaireDurum</td>
                         <td>@item.Borc.ToString("N2") @tl</td>
-
+                        <td><a href="@link" class="btn btn-sm btn-success">WhatsApp'tan Mesaj Gönder</a></td>
                     </tr>
 
                 }

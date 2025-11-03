@@ -248,11 +248,12 @@ namespace ApartmanAidatTakip.Controllers
 
                     decimal tummakbuz = db.MakbuzSatirs.Where(x => x.BinaID == BinaID && x.Durum == "A").Sum(x => (decimal?)x.Tutar) ?? 0;
                     decimal tahsilat2 = db.MakbuzSatirs.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.EkMiAidatMi == "E").Sum(x => (decimal?)x.Tutar) ?? 0;
-                    decimal tahsilat3 = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == yil).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+                    decimal tahsilat3 = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == yil && x.DemirbasMi == true).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
                     decimal gider2 = db.Giders.Where(x => x.BinaID == BinaID && x.Durum == "A").Sum(x => (decimal?)x.GiderTutar) ?? 0;
+                    decimal aidattahsilat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == yil && x.DemirbasMi == false).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
 
 
-                    ViewBag.Kasa = (acilisbakiye + tummakbuz + tahsilat3) - gider2;
+                    ViewBag.Kasa = (acilisbakiye + tummakbuz + tahsilat3 + aidattahsilat) - gider2;
 
                     ViewBag.EkBakiye = (tahsilat3 + ekacilis + tahsilat2) - demirbasgider;
                     ViewBag.AidatBakiye = ViewBag.Kasa - ViewBag.EkBakiye;
@@ -273,14 +274,15 @@ namespace ApartmanAidatTakip.Controllers
 
                     var makbuzIDListesi = db.Makbuzs.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.MakbuzTarihi.Value.Year == yil).Select(x => x.MakbuzID).ToList();
                     decimal makbuz = db.MakbuzSatirs.Where(x => x.BinaID == BinaID && x.Durum == "A" && makbuzIDListesi.Contains((int)x.MakbuzID)).Sum(x => (decimal?)x.Tutar) ?? 0;
-                    decimal tahsilat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == yil).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+                    decimal tahsilat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == yil && x.DemirbasMi == true).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+                    decimal tahsilataidat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == yil && x.DemirbasMi == false).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
                     decimal gider = db.Giders.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.GiderTarih.Value.Year == yil).Sum(x => (decimal?)x.GiderTutar) ?? 0;
                     ViewBag.ToplamGelir = makbuz + tahsilat;
                     ViewBag.ToplamGider = gider;
 
                     ViewBag.Kasa = (bironcekikasa.KasaToplam + makbuzgelir + tahsilatgelir) - aygider;
 
-                    ViewBag.EkBakiye = (tahsilatgelir + bironcekikasa.KasaEk) - demirbasgider;
+                    ViewBag.EkBakiye = (tahsilat + bironcekikasa.KasaEk) - demirbasgider;
 
                     ViewBag.AidatBakiye = ViewBag.Kasa - ViewBag.EkBakiye;
                 }
@@ -307,14 +309,15 @@ namespace ApartmanAidatTakip.Controllers
 
                 var makbuzIDListesi = db.Makbuzs.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.MakbuzTarihi.Value.Year == yil).Select(x => x.MakbuzID).ToList();
                 decimal makbuz = db.MakbuzSatirs.Where(x => x.BinaID == BinaID && x.Durum == "A" && makbuzIDListesi.Contains((int)x.MakbuzID)).Sum(x => (decimal?)x.Tutar) ?? 0;
-                decimal tahsilat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == yil).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+                decimal tahsilat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == yil && x.DemirbasMi == true).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+                decimal tahsilataidat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == yil && x.DemirbasMi == false).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
                 decimal gider = db.Giders.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.GiderTarih.Value.Year == yil).Sum(x => (decimal?)x.GiderTutar) ?? 0;
                 ViewBag.ToplamGelir = makbuz + tahsilat;
                 ViewBag.ToplamGider = gider;
 
                 ViewBag.Kasa = (son_kasa.KasaToplam + makbuzgelir + tahsilatgelir) - aygider;
 
-                ViewBag.EkBakiye = (tahsilatgelir + son_kasa.KasaEk) - demirbasgider;
+                ViewBag.EkBakiye = (tahsilat + son_kasa.KasaEk) - demirbasgider;
 
                 ViewBag.AidatBakiye = ViewBag.Kasa - ViewBag.EkBakiye;
 
@@ -1187,7 +1190,8 @@ namespace ApartmanAidatTakip.Controllers
                 var ektoplam1 = db.Tahsilats
                     .Where(x => x.BinaID == BinaID && x.Durum == "A" &&
                                 x.TahsilatTarih.Value.Year == yil &&
-                                x.TahsilatTarih.Value.Month == ay)
+                                x.TahsilatTarih.Value.Month == ay && 
+                                x.DemirbasMi == true)
                     .Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
 
                 var giderektoplam = db.Giders
@@ -1202,7 +1206,15 @@ namespace ApartmanAidatTakip.Controllers
                                 x.GiderTarih.Value.Month == ay)
                     .Sum(x => (decimal?)x.GiderTutar) ?? 0;
 
-                var aidattoplam = (makbuzToplam + kasaaidat) - gidertoplam;
+
+                var aidattoplam3 = db.Tahsilats
+                    .Where(x => x.BinaID == BinaID && x.Durum == "A" &&
+                                x.TahsilatTarih.Value.Year == yil &&
+                                x.TahsilatTarih.Value.Month == ay &&
+                                x.DemirbasMi == false)
+                    .Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+
+                var aidattoplam = (makbuzToplam + kasaaidat + aidattoplam3) - gidertoplam;
                 var ektoplam = (ektoplam1 + ektoplam2 + kasaek) - giderektoplam;
                 var fulltoplam = aidattoplam + ektoplam;
 
