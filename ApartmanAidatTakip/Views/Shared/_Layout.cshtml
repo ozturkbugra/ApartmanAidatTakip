@@ -120,12 +120,52 @@
             <i class="bi bi-list toggle-sidebar-btn"></i>
         </div><!-- End Logo -->
 
+        <div class="search-bar">
+            <form class="search-form d-flex align-items-center" onsubmit="return false;">
+                <input type="text" id="menuSearch" placeholder="Ara..." title="Menüde ara">
+                <button type="submit" title="Search"><i class="bi bi-search"></i></button>
+            </form>
+        </div>
+
+
+        <script>
+            // Türkçe karakterleri normalize eden fonksiyon
+            function normalizeText(text) {
+                return text
+                    .toLowerCase()
+                    .replace(/ç/g, 'c')
+                    .replace(/ğ/g, 'g')
+                    .replace(/ı/g, 'i')
+                    .replace(/ö/g, 'o')
+                    .replace(/ş/g, 's')
+                    .replace(/ü/g, 'u');
+            }
+
+            document.getElementById('menuSearch').addEventListener('input', function () {
+                var searchValue = normalizeText(this.value.trim());
+                var items = document.querySelectorAll('.nav-item');
+
+                items.forEach(function (li) {
+                    var idValue = normalizeText(li.id || '');
+                    if (searchValue === '' || idValue.includes(searchValue)) {
+                        li.style.display = '';
+                    } else {
+                        li.style.display = 'none';
+                    }
+                });
+            });
+        </script>
 
 
         <nav class="header-nav ms-auto">
             <ul class="d-flex align-items-center">
 
 
+                <li class="nav-item d-block d-lg-none">
+                    <a class="mobil" href="#">
+                        <i class="bi bi-search"></i>
+                    </a>
+                </li><!-- End Search Icon-->
 
 
                 <li class="nav-item dropdown pe-3">
@@ -181,7 +221,7 @@
 
             @if (aktif == "Anasayfa")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Ana Sayfa">
                     <a class="nav-link" href="/AnaSayfa">
                         <i class="bi bi-house"></i>
                         <span>Ana Sayfa</span>
@@ -190,7 +230,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Ana Sayfa">
                     <a class="nav-link collapsed" href="/AnaSayfa">
                         <i class="bi bi-house"></i>
                         <span>Ana Sayfa</span>
@@ -200,7 +240,7 @@
 
             @if (aktif == "AcilisBakiye")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Açılış Bakiyesi">
                     <a class="nav-link" href="/AnaSayfa/AcilisBakiye">
                         <i class="bi bi-coin"></i>
                         <span>Açılış Bakiyesi</span>
@@ -209,7 +249,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Açılış Bakiyesi">
                     <a class="nav-link collapsed" href="/AnaSayfa/AcilisBakiye">
                         <i class="bi bi-coin"></i>
                         <span>Açılış Bakiyesi</span>
@@ -219,7 +259,7 @@
 
             @if (aktif == "Sakinler")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Daire Sakinleri">
                     <a class="nav-link" href="/AnaSayfa/Sakinler">
                         <i class="bi bi-person-vcard-fill"></i>
                         <span>Daire Sakinleri</span>
@@ -228,7 +268,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Daire Sakinleri">
                     <a class="nav-link collapsed" href="/AnaSayfa/Sakinler">
                         <i class="bi bi-person-vcard-fill"></i>
                         <span>Daire Sakinleri</span>
@@ -238,7 +278,7 @@
 
             @if (aktif == "DaireBorclandir")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Daire Borçlandır">
                     <a class="nav-link" href="/AnaSayfa/DaireBorclandir">
                         <i class="bi bi-calendar-plus-fill"></i>
                         <span>Daire Borçlandır</span>
@@ -247,7 +287,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Daire Borçlandır">
                     <a class="nav-link collapsed" href="/AnaSayfa/DaireBorclandir">
                         <i class="bi bi-calendar-plus-fill"></i>
                         <span>Daire Borçlandır</span>
@@ -257,7 +297,7 @@
 
             @if (aktif == "DonemEkle")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Dönem Ekle">
                     <a class="nav-link" href="/AnaSayfa/DonemEkle">
                         <i class="bi bi-window-plus"></i>
                         <span>Dönem Ekle</span>
@@ -266,7 +306,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Dönem Ekle">
                     <a class="nav-link collapsed" href="/AnaSayfa/DonemEkle">
                         <i class="bi bi-window-plus"></i>
                         <span>Dönem Ekle</span>
@@ -279,7 +319,7 @@
 
             @if (aktif == "Makbuz")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Makbuz Oluştur">
                     <a class="nav-link" href="/Makbuz">
                         <i class="bi bi-card-list"></i>
                         <span>Makbuz Oluştur</span>
@@ -288,7 +328,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Makbuz Oluştur">
                     <a class="nav-link collapsed" href="/Makbuz">
                         <i class="bi bi-card-list"></i>
                         <span>Makbuz Oluştur</span>
@@ -298,7 +338,7 @@
 
             @if (aktif == "Giderler")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Giderler">
                     <a class="nav-link" href="/AnaSayfa/Giderler">
                         <i class="bi bi-file-earmark-x"></i>
                         <span>Giderler</span>
@@ -307,7 +347,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Giderler">
                     <a class="nav-link collapsed" href="/AnaSayfa/Giderler">
                         <i class="bi bi-file-earmark-x"></i>
                         <span>Giderler</span>
@@ -317,7 +357,7 @@
 
             @if (aktif == "Tahsilat")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Tahsilatlar">
                     <a class="nav-link" href="/AnaSayfa/Tahsilat">
                         <i class="bi bi-file-earmark-plus-fill"></i>
                         <span>Tahsilatlar</span>
@@ -326,7 +366,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Tahsilatlar">
                     <a class="nav-link collapsed" href="/AnaSayfa/Tahsilat">
                         <i class="bi bi-file-earmark-plus-fill"></i>
                         <span>Tahsilatlar</span>
@@ -339,7 +379,7 @@
 
             @if (aktif == "EklenenAidatlar")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Eklenen Aidatlar">
                     <a class="nav-link" href="/AnaSayfa/EklenenAidatlar">
                         <i class="bi bi-envelope-plus-fill"></i>
                         <span>Eklenen Aidatlar</span>
@@ -348,7 +388,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Eklenen Aidatlar">
                     <a class="nav-link collapsed" href="/AnaSayfa/EklenenAidatlar">
                         <i class="bi bi-envelope-plus-fill"></i>
                         <span>Eklenen Aidatlar</span>
@@ -358,7 +398,7 @@
 
             @if (aktif == "EklenenEkler")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Eklenen Ekler">
                     <a class="nav-link" href="/AnaSayfa/EklenenEkler">
                         <i class="bi bi-envelope-plus"></i>
                         <span>Eklenen Ekler</span>
@@ -367,7 +407,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Eklenen Ekler">
                     <a class="nav-link collapsed" href="/AnaSayfa/EklenenEkler">
                         <i class="bi bi-envelope-plus"></i>
                         <span>Eklenen Ekler</span>
@@ -377,7 +417,7 @@
 
             @if (aktif == "Ara")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Makbuz Ara">
                     <a class="nav-link" href="/Makbuz/Ara">
                         <i class="bi bi-search"></i>
                         <span>Makbuz Ara</span>
@@ -386,7 +426,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Makbuz Ara">
                     <a class="nav-link collapsed" href="/Makbuz/Ara">
                         <i class="bi bi-search"></i>
                         <span>Makbuz Ara</span>
@@ -396,7 +436,7 @@
 
             @if (aktif == "DaireSorgu")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Daire Borç Sorgula">
                     <a class="nav-link" href="/AnaSayfa/DaireSorgu">
                         <i class="bi bi-person-workspace"></i>
                         <span>Daire Borç Sorgula</span>
@@ -405,7 +445,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Daire Borç Sorgula">
                     <a class="nav-link collapsed" href="/AnaSayfa/DaireSorgu">
                         <i class="bi bi-person-workspace"></i>
                         <span>Daire Borç Sorgula</span>
@@ -415,7 +455,7 @@
 
             @if (aktif == "Notlar")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Notlarım">
                     <a class="nav-link" href="/AnaSayfa/Notlar">
                         <i class="bi bi-pencil-square"></i>
                         <span>Notlarım</span>
@@ -424,7 +464,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Notlarım">
                     <a class="nav-link collapsed" href="/AnaSayfa/Notlar">
                         <i class="bi bi-pencil-square"></i>
                         <span>Notlarım</span>
@@ -437,7 +477,7 @@
 
             @if (aktif == "BorcluDaireler")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Borçlu Daireler">
                     <a class="nav-link" href="/AnaSayfa/BorcluDaireler">
                         <i class="bi bi-person-video2"></i>
                         <span>Borçlu Daireler</span>
@@ -446,7 +486,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Borçlu Daireler">
                     <a class="nav-link collapsed" href="/AnaSayfa/BorcluDaireler">
                         <i class="bi bi-person-video2"></i>
                         <span>Borçlu Daireler</span>
@@ -456,7 +496,7 @@
 
             @if (aktif == "GelirGider")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Gelir Gider Raporu">
                     <a class="nav-link" href="/Raporlar/GelirGider">
                         <i class="bi bi-clipboard-data"></i>
                         <span>Gelir Gider Raporu</span>
@@ -465,7 +505,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Gelir Gider Raporu">
                     <a class="nav-link collapsed" href="/Raporlar/GelirGider">
                         <i class="bi bi-clipboard-data"></i>
                         <span>Gelir Gider Raporu</span>
@@ -475,7 +515,7 @@
 
             @if (aktif == "DetayliGelirGider")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Detaylı Gelir Gider Tablosu">
                     <a class="nav-link" href="/Raporlar/DetayliGelirGider?yil=@DateTime.Now.Year&ay=@DateTime.Now.Month">
                         <i class="bi bi-file-earmark-text"></i>
                         <span>Detaylı Gelir Gider Tablosu</span>
@@ -484,7 +524,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Detaylı Gelir Gider Tablosu">
                     <a class="nav-link collapsed" href="/Raporlar/DetayliGelirGider?yil=@DateTime.Now.Year&ay=@DateTime.Now.Month">
                         <i class="bi bi-file-earmark-text"></i>
                         <span>Detaylı Gelir Gider Tablosu</span>
@@ -494,7 +534,7 @@
 
             @if (aktif == "DenetciRaporu")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Denetçi Raporu">
                     <a class="nav-link" href="/Raporlar/DenetciRaporu">
                         <i class="bi bi-file-post"></i>
                         <span>Denetçi Raporu</span>
@@ -503,7 +543,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Denetçi Raporu">
                     <a class="nav-link collapsed" href="/Raporlar/DenetciRaporu">
                         <i class="bi bi-file-post"></i>
                         <span>Denetçi Raporu</span>
@@ -513,7 +553,7 @@
 
             @if (aktif == "TureGoreGiderler")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Türe Göre Giderler">
                     <a class="nav-link" href="/Raporlar/TureGoreGiderler">
                         <i class="bi bi-file-minus-fill"></i>
                         <span>Türe Göre Giderler</span>
@@ -522,7 +562,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Türe Göre Giderler">
                     <a class="nav-link collapsed" href="/Raporlar/TureGoreGiderler">
                         <i class="bi bi-file-minus-fill"></i>
                         <span>Türe Göre Giderler</span>
@@ -532,7 +572,7 @@
 
             @if (aktif == "DevirBakiyeleri")
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Devir Bakiyeleri">
                     <a class="nav-link" href="/Raporlar/DevirBakiyeleri">
                         <i class="bi bi-file-minus-fill"></i>
                         <span>Devir Bakiyeleri</span>
@@ -541,7 +581,7 @@
             }
             else
             {
-                <li class="nav-item">
+                <li class="nav-item" id="Devir Bakiyeleri">
                     <a class="nav-link collapsed" href="/Raporlar/DevirBakiyeleri">
                         <i class="bi bi-file-minus-fill"></i>
                         <span>Devir Bakiyeleri</span>
