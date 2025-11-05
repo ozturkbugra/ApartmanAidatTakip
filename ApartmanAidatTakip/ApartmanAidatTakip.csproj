@@ -194,6 +194,7 @@
     <Compile Include="Controllers\DaireController.cs" />
     <Compile Include="Controllers\MakbuzController.cs" />
     <Compile Include="Controllers\RaporlarController.cs" />
+    <Compile Include="Controllers\TopluMakbuzController.cs" />
     <Compile Include="fonts\HomeController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
@@ -779,6 +780,7 @@
     <Content Include="Views\Daire\Index.cshtml" />
     <Content Include="Views\Admin\Duyurular.cshtml" />
     <Content Include="Views\AnaSayfa\Notlar.cshtml" />
+    <Content Include="Views\TopluMakbuz\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

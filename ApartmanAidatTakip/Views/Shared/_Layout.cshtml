@@ -61,7 +61,7 @@
     <!-- Select2 CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet">
 
-  
+
 
 
 </head>
@@ -161,7 +161,7 @@
             <ul class="d-flex align-items-center">
 
 
-         
+
 
                 <li class="nav-item d-block d-lg-none">
                     <a class="nav-link nav-icon search-bar-toggle " href="#">
@@ -318,6 +318,25 @@
 
             <hr />
             <li class="nav-heading">İşlemler</li>
+            @if (aktif == "TopluMakbuz")
+            {
+                <li class="nav-item" id="Toplu Makbuz Oluştur">
+                    <a class="nav-link" href="/TopluMakbuz">
+                        <i class="bi bi-database-fill-add"></i>
+                        <span>Toplu Makbuz Oluştur</span>
+                    </a>
+                </li>
+            }
+            else
+            {
+                <li class="nav-item" id="Toplu Makbuz Oluştur">
+                    <a class="nav-link collapsed" href="/TopluMakbuz">
+                        <i class="bi bi-database-fill-add"></i>
+                        <span>Toplu Makbuz Oluştur</span>
+                    </a>
+                </li>
+            }
+
 
             @if (aktif == "Makbuz")
             {
