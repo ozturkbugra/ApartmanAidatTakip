@@ -296,6 +296,24 @@
                     </a>
                 </li>
             }
+            @if (aktif == "PesinOdemeler")
+            {
+                <li class="nav-item" id="Peşin Ödemeler">
+                    <a class="nav-link" href="/AnaSayfa/PesinOdemeler">
+                        <i class="bi bi-calendar-plus-fill"></i>
+                        <span>Peşin Ödemeler</span>
+                    </a>
+                </li>
+            }
+            else
+            {
+                <li class="nav-item" id="Peşin Ödemeler">
+                    <a class="nav-link collapsed" href="/AnaSayfa/PesinOdemeler">
+                        <i class="bi bi-calendar-plus-fill"></i>
+                        <span>Peşin Ödemeler</span>
+                    </a>
+                </li>
+            }
 
             @if (aktif == "DonemEkle")
             {

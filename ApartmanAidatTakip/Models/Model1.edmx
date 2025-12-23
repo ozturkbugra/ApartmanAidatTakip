@@ -173,6 +173,15 @@
           <Property Name="BinaID" Type="int" />
           <Property Name="BorcAciklama" Type="nvarchar(max)" />
         </EntityType>
+        <EntityType Name="PesinOdemeler">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="DaireID" Type="int" Nullable="false" />
+          <Property Name="Yil" Type="int" Nullable="false" />
+          <Property Name="BinaID" Type="int" Nullable="false" />
+        </EntityType>
         <EntityType Name="Tahsilat">
           <Key>
             <PropertyRef Name="TahsilatID" />
@@ -338,6 +347,27 @@ warning 6002: The table/view 'AptVT.dbo.MakbuzView' does not have a primary key 
           <Property Name="Borc" Type="decimal" Precision="18" Scale="2" />
         </EntityType>
         <!--Errors Found During Generation:
+warning 6002: The table/view 'AptVT.dbo.PesinOdemelerView' does not have a primary key defined. The key has been inferred and the definition was created as a read-only table/view.-->
+        <EntityType Name="PesinOdemelerView">
+          <Key>
+            <PropertyRef Name="DaireID" />
+            <PropertyRef Name="Yil" />
+            <PropertyRef Name="BinaID" />
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="DaireID" Type="int" Nullable="false" />
+          <Property Name="DaireNo" Type="int" />
+          <Property Name="AdSoyad" Type="nvarchar(max)" />
+          <Property Name="Yil" Type="int" Nullable="false" />
+          <Property Name="BinaID" Type="int" Nullable="false" />
+          <Property Name="Telefon" Type="nvarchar" MaxLength="10" />
+          <Property Name="YonetimdeMi" Type="nvarchar" MaxLength="1" />
+          <Property Name="Borc" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="DaireDurum" Type="nvarchar" MaxLength="10" />
+          <Property Name="TC" Type="nvarchar" MaxLength="11" />
+          <Property Name="ID" Type="int" Nullable="false" />
+        </EntityType>
+        <!--Errors Found During Generation:
 warning 6002: The table/view 'AptVT.dbo.TahsilatView' does not have a primary key defined. The key has been inferred and the definition was created as a read-only table/view.-->
         <EntityType Name="TahsilatView">
           <Key>
@@ -368,6 +398,7 @@ warning 6002: The table/view 'AptVT.dbo.TahsilatView' does not have a primary ke
           <EntitySet Name="Makbuz" EntityType="Self.Makbuz" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="MakbuzSatir" EntityType="Self.MakbuzSatir" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Notlar" EntityType="Self.Notlar" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="PesinOdemeler" EntityType="Self.PesinOdemeler" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Tahsilat" EntityType="Self.Tahsilat" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AidatView" EntityType="Self.AidatView" store:Type="Views" store:Schema="dbo">
             <DefiningQuery>SELECT 
@@ -492,6 +523,21 @@ warning 6002: The table/view 'AptVT.dbo.TahsilatView' does not have a primary ke
     [MakbuzView].[DaireDurum] AS [DaireDurum], 
     [MakbuzView].[Borc] AS [Borc]
     FROM [dbo].[MakbuzView] AS [MakbuzView]</DefiningQuery>
+          </EntitySet>
+          <EntitySet Name="PesinOdemelerView" EntityType="Self.PesinOdemelerView" store:Type="Views" store:Schema="dbo">
+            <DefiningQuery>SELECT 
+    [PesinOdemelerView].[DaireID] AS [DaireID], 
+    [PesinOdemelerView].[DaireNo] AS [DaireNo], 
+    [PesinOdemelerView].[AdSoyad] AS [AdSoyad], 
+    [PesinOdemelerView].[Yil] AS [Yil], 
+    [PesinOdemelerView].[BinaID] AS [BinaID], 
+    [PesinOdemelerView].[Telefon] AS [Telefon], 
+    [PesinOdemelerView].[YonetimdeMi] AS [YonetimdeMi], 
+    [PesinOdemelerView].[Borc] AS [Borc], 
+    [PesinOdemelerView].[DaireDurum] AS [DaireDurum], 
+    [PesinOdemelerView].[TC] AS [TC], 
+    [PesinOdemelerView].[ID] AS [ID]
+    FROM [dbo].[PesinOdemelerView] AS [PesinOdemelerView]</DefiningQuery>
           </EntitySet>
           <EntitySet Name="TahsilatView" EntityType="Self.TahsilatView" store:Type="Views" store:Schema="dbo">
             <DefiningQuery>SELECT 
@@ -739,6 +785,8 @@ warning 6002: The table/view 'AptVT.dbo.TahsilatView' does not have a primary ke
           <EntitySet Name="Duyurulars" EntityType="AptVTModel.Duyurular" />
           <EntitySet Name="Notlars" EntityType="AptVTModel.Notlar" />
           <EntitySet Name="TahsilatViews" EntityType="AptVTModel.TahsilatView" />
+          <EntitySet Name="PesinOdemelers" EntityType="AptVTModel.PesinOdemeler" />
+          <EntitySet Name="PesinOdemelerViews" EntityType="AptVTModel.PesinOdemelerView" />
         </EntityContainer>
         <EntityType Name="Binalar">
           <Key>
@@ -866,6 +914,34 @@ warning 6002: The table/view 'AptVT.dbo.TahsilatView' does not have a primary ke
           <Property Name="Durum" Type="String" MaxLength="1" FixedLength="false" Unicode="true" />
           <Property Name="TahsilatNo" Type="Int32" />
           <Property Name="DemirbasMi" Type="Boolean" />
+        </EntityType>
+        <EntityType Name="PesinOdemeler">
+          <Key>
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="ID" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="DaireID" Type="Int32" Nullable="false" />
+          <Property Name="Yil" Type="Int32" Nullable="false" />
+          <Property Name="BinaID" Type="Int32" Nullable="false" />
+        </EntityType>
+        <EntityType Name="PesinOdemelerView">
+          <Key>
+            <PropertyRef Name="DaireID" />
+            <PropertyRef Name="Yil" />
+            <PropertyRef Name="BinaID" />
+            <PropertyRef Name="ID" />
+          </Key>
+          <Property Name="DaireID" Type="Int32" Nullable="false" />
+          <Property Name="DaireNo" Type="Int32" />
+          <Property Name="AdSoyad" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
+          <Property Name="Yil" Type="Int32" Nullable="false" />
+          <Property Name="BinaID" Type="Int32" Nullable="false" />
+          <Property Name="Telefon" Type="String" MaxLength="10" FixedLength="false" Unicode="true" />
+          <Property Name="YonetimdeMi" Type="String" MaxLength="1" FixedLength="false" Unicode="true" />
+          <Property Name="Borc" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="DaireDurum" Type="String" MaxLength="10" FixedLength="false" Unicode="true" />
+          <Property Name="TC" Type="String" MaxLength="11" FixedLength="false" Unicode="true" />
+          <Property Name="ID" Type="Int32" Nullable="false" />
         </EntityType>
       </Schema>
     </edmx:ConceptualModels>
@@ -1221,6 +1297,33 @@ warning 6002: The table/view 'AptVT.dbo.TahsilatView' does not have a primary ke
                 <ScalarProperty Name="TahsilatTutar" ColumnName="TahsilatTutar" />
                 <ScalarProperty Name="TahsilatAciklama" ColumnName="TahsilatAciklama" />
                 <ScalarProperty Name="TahsilatID" ColumnName="TahsilatID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PesinOdemelers">
+            <EntityTypeMapping TypeName="AptVTModel.PesinOdemeler">
+              <MappingFragment StoreEntitySet="PesinOdemeler">
+                <ScalarProperty Name="BinaID" ColumnName="BinaID" />
+                <ScalarProperty Name="Yil" ColumnName="Yil" />
+                <ScalarProperty Name="DaireID" ColumnName="DaireID" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="PesinOdemelerViews">
+            <EntityTypeMapping TypeName="AptVTModel.PesinOdemelerView">
+              <MappingFragment StoreEntitySet="PesinOdemelerView">
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="TC" ColumnName="TC" />
+                <ScalarProperty Name="DaireDurum" ColumnName="DaireDurum" />
+                <ScalarProperty Name="Borc" ColumnName="Borc" />
+                <ScalarProperty Name="YonetimdeMi" ColumnName="YonetimdeMi" />
+                <ScalarProperty Name="Telefon" ColumnName="Telefon" />
+                <ScalarProperty Name="BinaID" ColumnName="BinaID" />
+                <ScalarProperty Name="Yil" ColumnName="Yil" />
+                <ScalarProperty Name="AdSoyad" ColumnName="AdSoyad" />
+                <ScalarProperty Name="DaireNo" ColumnName="DaireNo" />
+                <ScalarProperty Name="DaireID" ColumnName="DaireID" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>
