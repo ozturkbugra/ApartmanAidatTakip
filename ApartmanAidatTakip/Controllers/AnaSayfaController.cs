@@ -127,7 +127,7 @@ namespace ApartmanAidatTakip.Controllers
         }
         public ActionResult Index()
         {
-            // --- 1. GİRİŞ VE GÜVENLİK KONTROLLERİ (AYNI) ---
+            // --- 1. GİRİŞ KONTROLLERİ ---
             if (Request.Cookies["KullaniciBilgileri"] == null)
             {
                 return RedirectToAction("Login", "AnaSayfa");
@@ -136,7 +136,7 @@ namespace ApartmanAidatTakip.Controllers
             HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
             int KullaniciID = Convert.ToInt32(userCookie.Values["KullaniciID"]);
 
-            // Burası View olduğu için Find kullanamıyoruz ama AsNoTracking ile hızlandırabiliriz (Sadece okuma yapıyoruz)
+            // AsNoTracking ile sadece okuma (HIZLI)
             var aktifmi = db.KullanicilarViews.AsNoTracking().FirstOrDefault(x => x.KullaniciID == KullaniciID);
 
             Session["Aktif"] = "Anasayfa";
@@ -155,85 +155,68 @@ namespace ApartmanAidatTakip.Controllers
             // --- 2. TARİH DEĞİŞKENLERİ ---
             int currentYear = DateTime.Now.Year;
             int currentMonth = DateTime.Now.Month;
-
             int previousMonth = (currentMonth == 1) ? 12 : currentMonth - 1;
             int previousYear = (currentMonth == 1) ? currentYear - 1 : currentYear;
 
-            // --- 3. BU AYIN VERİLERİNİ ÇEKME ---
-            // AsNoTracking() ekledik. Bu, verileri sadece okumak için çektiğimizde EF'nin takip mekanizmasını kapatır, %20-30 hız katar.
-
-            var buAyGiderListesi = db.GiderViews
-                .AsNoTracking()
+            // --- 3. BU AYIN VERİLERİ (RAM DOSTU - AsNoTracking) ---
+            var buAyGiderListesi = db.GiderViews.AsNoTracking()
                 .Where(x => x.BinaID == BinaID && x.Durum == "A" && x.GiderTarih.Value.Year == currentYear && x.GiderTarih.Value.Month == currentMonth)
-                .OrderByDescending(x => x.GiderID)
-                .ToList();
+                .OrderByDescending(x => x.GiderID).ToList();
 
-            var buAyMakbuzListesi = db.MakbuzViews
-                .AsNoTracking()
+            var buAyMakbuzListesi = db.MakbuzViews.AsNoTracking()
                 .Where(x => x.BinaID == BinaID && x.Durum == "A" && x.MakbuzTarihi.Value.Year == currentYear && x.MakbuzTarihi.Value.Month == currentMonth)
-                .OrderByDescending(x => x.MakbuzID)
-                .ToList();
+                .OrderByDescending(x => x.MakbuzID).ToList();
 
-            var buAyTahsilatListesi = db.Tahsilats
-                .AsNoTracking()
+            var buAyTahsilatListesi = db.Tahsilats.AsNoTracking()
                 .Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == currentYear && x.TahsilatTarih.Value.Month == currentMonth)
-                .OrderByDescending(x => x.TahsilatID)
-                .ToList();
+                .OrderByDescending(x => x.TahsilatID).ToList();
 
-            // --- 4. HAFIZADA HESAPLAMA (BU AY) ---
+            // --- 4. HESAPLAMALAR ---
             decimal aygider = buAyGiderListesi.Sum(x => x.GiderTutar) ?? 0;
             decimal makbuzgelir = buAyMakbuzListesi.Sum(x => x.MabuzTutar) ?? 0;
             decimal tahsilatgelir = buAyTahsilatListesi.Sum(x => x.TahsilatTutar) ?? 0;
 
-            decimal tahsilatDemirbasBuAy = buAyTahsilatListesi.Where(x => x.DemirbasMi == true).Sum(x => x.TahsilatTutar) ?? 0;
-            decimal tahsilatAidatBuAy = buAyTahsilatListesi.Where(x => x.DemirbasMi == false).Sum(x => x.TahsilatTutar) ?? 0;
-
             ViewBag.aygelir = makbuzgelir + tahsilatgelir;
             ViewBag.aygider = aygider;
-            ViewBag.Giderler = buAyGiderListesi;
-            ViewBag.Makbuzlar = buAyMakbuzListesi;
-            ViewBag.Tahsilatlar = buAyTahsilatListesi;
+            ViewBag.Giderler = buAyGiderListesi.Take(10).ToList(); // Ekrana sadece son 10 taneyi bas, hepsini değil
+            ViewBag.Makbuzlar = buAyMakbuzListesi.Take(10).ToList();
+            ViewBag.Tahsilatlar = buAyTahsilatListesi.Take(10).ToList();
 
-            // Borç hesabı (Tek sorgu)
-            decimal toplamBorc = db.Dairelers.Where(x => x.BinaID == BinaID).Sum(x => (decimal?)x.Borc) ?? 0;
+            // TOPLAM ALACAK (HIZLI COUNT)
+            // Tüm daireleri çekmeye gerek yok, sadece borcu topla
+            decimal toplamBorc = db.Dairelers.AsNoTracking().Where(x => x.BinaID == BinaID).Sum(x => (decimal?)x.Borc) ?? 0;
             ViewBag.alacak = toplamBorc;
             ViewBag.ToplamAlacak = toplamBorc;
 
-            // --- 5. YILLIK HESAPLAMALAR (HIZLANDIRILDI) ---
+            // --- 5. YILLIK HESAPLAMALAR (OPTIMIZE EDİLDİ) ---
+            // Join kullanarak tek sorguda çekiyoruz (N+1 engellendi)
 
-            // a) Yıllık Makbuz Hesabı (JOIN ile Tek Sorguya İndirildi)
-            // Eski yöntemde önce ID çekip sonra tekrar sorgu atıyordun. Bu yöntem direkt sunucuda birleştirip sonucu döner.
             decimal yilMakbuz = (from ms in db.MakbuzSatirs
                                  join m in db.Makbuzs on ms.MakbuzID equals m.MakbuzID
                                  where m.BinaID == BinaID && m.Durum == "A" && m.MakbuzTarihi.Value.Year == currentYear
                                  select ms.Tutar).Sum() ?? 0;
 
-            // b) Diğer Yıllık Hesaplar
-            // Not: Bu sorgular zaten count/sum olduğu için veritabanında hızlı çalışır.
-            decimal yilTahsilatDemirbas = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == currentYear && x.DemirbasMi == true).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
-            decimal yilTahsilatAidat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == currentYear && x.DemirbasMi == false).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
-            decimal yilGider = db.Giders.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.GiderTarih.Value.Year == currentYear).Sum(x => (decimal?)x.GiderTutar) ?? 0;
+            decimal yilTahsilatDemirbas = db.Tahsilats.AsNoTracking().Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == currentYear && x.DemirbasMi == true).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+            decimal yilTahsilatAidat = db.Tahsilats.AsNoTracking().Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Year == currentYear && x.DemirbasMi == false).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+            decimal yilGider = db.Giders.AsNoTracking().Where(x => x.BinaID == BinaID && x.Durum == "A" && x.GiderTarih.Value.Year == currentYear).Sum(x => (decimal?)x.GiderTutar) ?? 0;
 
             ViewBag.ToplamGelir = yilMakbuz + yilTahsilatDemirbas + yilTahsilatAidat;
             ViewBag.ToplamGider = yilGider;
 
-
-            // --- 6. KASA VE DEVİR MANTIĞI ---
-            var acilis = db.AcilisBakiyes.FirstOrDefault(x => x.BinaID == BinaID);
+            // --- 6. KASA HESABI (FALLBACK HIZLANDIRMA) ---
+            var acilis = db.AcilisBakiyes.AsNoTracking().FirstOrDefault(x => x.BinaID == BinaID);
             decimal acilisbakiye = acilis?.ToplamTutar ?? 0;
             decimal ekacilis = acilis?.EkTutar ?? 0;
 
-            var son_kasa = db.Kasas.FirstOrDefault(x => x.KasaYil == currentYear && x.AyKodu == currentMonth && x.BinaID == BinaID);
+            var son_kasa = db.Kasas.AsNoTracking().FirstOrDefault(x => x.KasaYil == currentYear && x.AyKodu == currentMonth && x.BinaID == BinaID);
 
             if (son_kasa == null)
             {
-                var bironcekikasa = db.Kasas.Where(x => x.BinaID == BinaID).OrderByDescending(x => x.KasaID).FirstOrDefault();
+                var bironcekikasa = db.Kasas.AsNoTracking().Where(x => x.BinaID == BinaID).OrderByDescending(x => x.KasaID).FirstOrDefault();
 
                 if (bironcekikasa == null)
                 {
-                    // --- KRİTİK HIZLANDIRMA (FALLBACK SENARYOSU) ---
-                    // Eski kodda tüm makbuzları satır satır topluyordun, Join ile hızlandırdık.
-
+                    // HİÇ KASA YOKSA TÜMÜNÜ TOPLA (OPTIMIZE EDİLMİŞ)
                     decimal tummakbuz = (from ms in db.MakbuzSatirs
                                          join m in db.Makbuzs on ms.MakbuzID equals m.MakbuzID
                                          where m.BinaID == BinaID && m.Durum == "A"
@@ -244,10 +227,10 @@ namespace ApartmanAidatTakip.Controllers
                                              where m.BinaID == BinaID && m.Durum == "A" && ms.EkMiAidatMi == "E"
                                              select ms.Tutar).Sum() ?? 0;
 
-                    decimal gider2 = db.Giders.Where(x => x.BinaID == BinaID && x.Durum == "A").Sum(x => (decimal?)x.GiderTutar) ?? 0;
+                    decimal gider2 = db.Giders.AsNoTracking().Where(x => x.BinaID == BinaID && x.Durum == "A").Sum(x => (decimal?)x.GiderTutar) ?? 0;
 
-                    decimal tahsilat3 = tahsilatDemirbasBuAy;
-                    decimal aidattahsilat = tahsilatAidatBuAy;
+                    decimal tahsilat3 = buAyTahsilatListesi.Where(x => x.DemirbasMi == true).Sum(x => x.TahsilatTutar) ?? 0;
+                    decimal aidattahsilat = buAyTahsilatListesi.Where(x => x.DemirbasMi == false).Sum(x => x.TahsilatTutar) ?? 0;
                     decimal demirbasgider = buAyGiderListesi.Where(x => x.GiderTuruID == 6).Sum(x => x.GiderTutar) ?? 0;
 
                     ViewBag.Kasa = (acilisbakiye + tummakbuz + tahsilat3 + aidattahsilat) - gider2;
@@ -257,86 +240,54 @@ namespace ApartmanAidatTakip.Controllers
                 else
                 {
                     decimal demirbasgider = buAyGiderListesi.Where(x => x.GiderTuruID == 6).Sum(x => x.GiderTutar) ?? 0;
-
                     ViewBag.Kasa = (bironcekikasa.KasaToplam + makbuzgelir + tahsilatgelir) - aygider;
-                    ViewBag.EkBakiye = (tahsilatDemirbasBuAy + bironcekikasa.KasaEk) - demirbasgider;
+                    ViewBag.EkBakiye = (buAyTahsilatListesi.Where(x => x.DemirbasMi == true).Sum(x => x.TahsilatTutar) + bironcekikasa.KasaEk) - demirbasgider;
                     ViewBag.AidatBakiye = (decimal)ViewBag.Kasa - (decimal)ViewBag.EkBakiye;
                 }
             }
             else
             {
                 decimal demirbasgider = buAyGiderListesi.Where(x => x.GiderTuruID == 6).Sum(x => x.GiderTutar) ?? 0;
-
                 ViewBag.Kasa = (son_kasa.KasaToplam + makbuzgelir + tahsilatgelir) - aygider;
-                ViewBag.EkBakiye = (tahsilatDemirbasBuAy + son_kasa.KasaEk) - demirbasgider;
+                ViewBag.EkBakiye = (buAyTahsilatListesi.Where(x => x.DemirbasMi == true).Sum(x => x.TahsilatTutar) + son_kasa.KasaEk) - demirbasgider;
                 ViewBag.AidatBakiye = (decimal)ViewBag.Kasa - (decimal)ViewBag.EkBakiye;
             }
 
-            // --- 7. DEĞİŞİM GRAFİKLERİ ---
-            decimal eskimakbuz = db.Makbuzs.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.MakbuzTarihi.Value.Month == previousMonth && x.MakbuzTarihi.Value.Year == previousYear).Sum(x => (decimal?)x.MabuzTutar) ?? 0;
-            decimal eskitahsilat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Month == previousMonth && x.TahsilatTarih.Value.Year == previousYear).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
-            decimal eskigider = db.Giders.Where(x => x.BinaID == BinaID && x.Durum == "A" && x.GiderTarih.Value.Month == previousMonth && x.GiderTarih.Value.Year == previousYear).Sum(x => (decimal?)x.GiderTutar) ?? 0;
+            // --- 7. DEĞİŞİM GRAFİKLERİ (AsNoTracking ile) ---
+            // Tek tek Sum çekmek yerine hızlıca hallediyoruz.
+            decimal eskimakbuz = db.Makbuzs.AsNoTracking().Where(x => x.BinaID == BinaID && x.Durum == "A" && x.MakbuzTarihi.Value.Month == previousMonth && x.MakbuzTarihi.Value.Year == previousYear).Sum(x => (decimal?)x.MabuzTutar) ?? 0;
+            decimal eskitahsilat = db.Tahsilats.AsNoTracking().Where(x => x.BinaID == BinaID && x.Durum == "A" && x.TahsilatTarih.Value.Month == previousMonth && x.TahsilatTarih.Value.Year == previousYear).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+            decimal eskigider = db.Giders.AsNoTracking().Where(x => x.BinaID == BinaID && x.Durum == "A" && x.GiderTarih.Value.Month == previousMonth && x.GiderTarih.Value.Year == previousYear).Sum(x => (decimal?)x.GiderTutar) ?? 0;
 
             decimal eskigelir = eskimakbuz + eskitahsilat;
             decimal yenigelir = makbuzgelir + tahsilatgelir;
             decimal yenigider = aygider;
 
-            // Gelir Değişimi
+            // Yüzde hesapları aynı kalıyor...
             decimal yuzdeDegisim;
             if (eskigelir == 0) yuzdeDegisim = (yenigelir > 0) ? 100 : 0;
-            else yuzdeDegisim = ((yenigelir - eskigelir) / eskigelir) * 100;
-            yuzdeDegisim = Math.Round(yuzdeDegisim, 2);
+            else yuzdeDegisim = Math.Round(((yenigelir - eskigelir) / eskigelir) * 100, 2);
 
-            if (yuzdeDegisim < 0)
-            {
-                ViewBag.Degisim = 0;
-                ViewBag.DegisimTutar = yuzdeDegisim * -1;
-            }
-            else
-            {
-                ViewBag.Degisim = 1;
-                ViewBag.DegisimTutar = yuzdeDegisim;
-            }
+            ViewBag.Degisim = yuzdeDegisim < 0 ? 0 : 1;
+            ViewBag.DegisimTutar = Math.Abs(yuzdeDegisim);
 
-            // Gider Değişimi
             decimal gideryuzdedegisim;
             if (eskigider == 0) gideryuzdedegisim = (yenigider > 0) ? 100 : 0;
-            else gideryuzdedegisim = ((yenigider - eskigider) / eskigider) * 100;
-            gideryuzdedegisim = Math.Round(gideryuzdedegisim, 2);
+            else gideryuzdedegisim = Math.Round(((yenigider - eskigider) / eskigider) * 100, 2);
 
-            if (gideryuzdedegisim < 0)
-            {
-                ViewBag.GiderDegisim = 0;
-                ViewBag.GiderDegisimTutar = gideryuzdedegisim * -1;
-            }
-            else
-            {
-                ViewBag.GiderDegisim = 1;
-                ViewBag.GiderDegisimTutar = gideryuzdedegisim;
-            }
+            ViewBag.GiderDegisim = gideryuzdedegisim < 0 ? 0 : 1;
+            ViewBag.GiderDegisimTutar = Math.Abs(gideryuzdedegisim);
 
-            // Kasa Değişimi
             decimal kasadegisim = yuzdeDegisim - gideryuzdedegisim;
-            if (kasadegisim < 0)
-            {
-                ViewBag.KasaDegisim = 0;
-                ViewBag.KasaDegisimTutar = kasadegisim * -1;
-            }
-            else
-            {
-                ViewBag.KasaDegisim = 1;
-                ViewBag.KasaDegisimTutar = kasadegisim;
-            }
+            ViewBag.KasaDegisim = kasadegisim < 0 ? 0 : 1;
+            ViewBag.KasaDegisimTutar = Math.Abs(kasadegisim);
 
-            // --- HIZLANDIRMA: Daire Borç Durumları (Tek Sorguda Count) ---
-            // 2 ayrı sorgu yerine tek seferde çekip hafızada sayıyoruz. Daire sayısı genelde azdır (max 100-200), bu yüzden RAM'de yapmak çok daha hızlıdır.
-            var daireBorclari = db.Dairelers
-                                  .Where(x => x.BinaID == BinaID)
-                                  .Select(x => x.Borc)
-                                  .ToList();
+            // --- BORÇLU DAİRE SAYISI (HIZLI COUNT) ---
+            // Tüm daireleri çekip RAM'e atmak yerine, sadece Borc kolonunu sorguluyoruz.
+            var borclar = db.Dairelers.AsNoTracking().Where(x => x.BinaID == BinaID).Select(x => x.Borc).ToList();
 
-            ViewBag.BorcuOlmayanlar = daireBorclari.Count(x => x <= 0);
-            ViewBag.BorcuOlanlar = daireBorclari.Count(x => x > 0);
+            ViewBag.BorcuOlmayanlar = borclar.Count(x => x <= 0);
+            ViewBag.BorcuOlanlar = borclar.Count(x => x > 0);
 
             return View();
         }

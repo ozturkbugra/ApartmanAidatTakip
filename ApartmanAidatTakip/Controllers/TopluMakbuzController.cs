@@ -90,117 +90,124 @@ namespace ApartmanAidatTakip.Controllers
         [HttpPost]
         public ActionResult Olustur(int[] SecilenAidatlar, int[] SecilenEkler, int daireID)
         {
+            if (Request.Cookies["KullaniciBilgileri"] == null) return RedirectToAction("Login", "AnaSayfa");
+
             HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
             int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
 
-            // Aidat yada ek boşsa hata ver
-            if ((SecilenAidatlar == null || !SecilenAidatlar.Any()) &&
-                (SecilenEkler == null || !SecilenEkler.Any()))
+            if ((SecilenAidatlar == null || !SecilenAidatlar.Any()) && (SecilenEkler == null || !SecilenEkler.Any()))
             {
                 TempData["Mesaj"] = "Lütfen en az bir borç seçiniz.";
                 return RedirectToAction("Index");
             }
-            var dairesorgu = db.Dairelers.Where(x => x.DaireID == daireID).FirstOrDefault();
 
-            // İşlemleri transaction ile yap
+            var dairesorgu = db.Dairelers.FirstOrDefault(x => x.DaireID == daireID);
+            if (dairesorgu == null) return RedirectToAction("Index");
+
             using (var tran = db.Database.BeginTransaction())
             {
                 try
                 {
-                    decimal toplamTutar = 0;
+                    // --- 1. TUTARLARI HESAPLA VE LİSTELERİ ÇEK ---
+                    decimal toplamAidatTutar = 0;
+                    decimal toplamEkTutar = 0;
+
+                    // Listeleri baştan çekiyoruz (RAM'e alıyoruz)
+                    List<Aidat> aidatListesi = new List<Aidat>();
+                    List<Ek> ekListesi = new List<Ek>();
 
                     if (SecilenAidatlar != null && SecilenAidatlar.Any())
-                        toplamTutar += db.Aidats
-                            .Where(x => SecilenAidatlar.Contains(x.AidatID))
-                            .Sum(x => (decimal?)x.AidatTutar) ?? 0;
+                    {
+                        aidatListesi = db.Aidats.Where(x => SecilenAidatlar.Contains(x.AidatID)).ToList();
+                        toplamAidatTutar = aidatListesi.Sum(x => (decimal?)x.AidatTutar) ?? 0;
+                    }
 
                     if (SecilenEkler != null && SecilenEkler.Any())
-                        toplamTutar += db.Eks
-                            .Where(x => SecilenEkler.Contains(x.EkID))
-                            .Sum(x => (decimal?)x.EkTutar) ?? 0;
+                    {
+                        ekListesi = db.Eks.Where(x => SecilenEkler.Contains(x.EkID)).ToList();
+                        toplamEkTutar = ekListesi.Sum(x => (decimal?)x.EkTutar) ?? 0;
+                    }
 
-                    // Dairenin borcunu güncelle
-                    dairesorgu.Borc = dairesorgu.Borc - toplamTutar;
+                    decimal genelToplam = toplamAidatTutar + toplamEkTutar;
 
-                    var sonmakbuz = db.Makbuzs.OrderByDescending(x => x.MakbuzID).FirstOrDefault(x=> x.BinaID == BinaID && x.Durum == "A");
-                    
-                    // Yeni makbuz numarasını belirleme
-                    var yenino = sonmakbuz.MakbuzNo + 1;
+                    // --- 2. BORÇ DÜŞME ---
+                    dairesorgu.Borc -= genelToplam;
 
-                    //makbuz ekle
+                    // --- 3. MAKBUZ NO BELİRLEME ---
+                    var sonmakbuz = db.Makbuzs.OrderByDescending(x => x.MakbuzID).FirstOrDefault(x => x.BinaID == BinaID && x.Durum == "A");
+                    int yenino = (sonmakbuz != null) ? (sonmakbuz.MakbuzNo ?? 0) + 1 : 1;
+
+                    // --- 4. ANA MAKBUZU OLUŞTUR VE KAYDET (KRİTİK ADIM 1) ---
+                    // Önce sadece Makbuz'u ekleyip kaydediyoruz ki ID oluşsun.
                     Makbuz yeni = new Makbuz
                     {
-                        MakbuzNo = yenino, 
+                        MakbuzNo = yenino,
                         BinaID = BinaID,
                         DaireID = daireID,
-                        MabuzTutar = toplamTutar,
+                        MabuzTutar = genelToplam, // Veritabanındaki kolon adın MabuzTutar imiş
                         MakbuzTarihi = DateTime.Now,
                         Durum = "A",
                         OnayliMi = false
                     };
 
                     db.Makbuzs.Add(yeni);
-                    db.SaveChanges();
+                    db.SaveChanges(); // <--- BURADA KAYDEDİYORUZ Kİ "yeni.MakbuzID" OLUŞSUN!
 
-                   // aidat satırlarını ekle
-                    if (SecilenAidatlar != null)
+                    // --- 5. SATIRLARI HAZIRLA (Oluşan ID'yi Kullanarak) ---
+                    List<MakbuzSatir> eklenecekSatirlar = new List<MakbuzSatir>();
+
+                    // Aidat Satırları
+                    foreach (var a in aidatListesi)
                     {
-                        var aidatlar = db.Aidats.Where(x => SecilenAidatlar.Contains(x.AidatID)).ToList();
-                        foreach (var a in aidatlar)
+                        a.Durum = "P";
+                        eklenecekSatirlar.Add(new MakbuzSatir
                         {
-                            a.Durum = "P"; 
-
-                            db.MakbuzSatirs.Add(new MakbuzSatir
-                            {
-                                MakbuzID = yeni.MakbuzID,
-                                AyAdi = a.AidatAy,
-                                YilAdi = a.AidatYil,
-                                Tutar = a.AidatTutar,
-                                DaireID = dairesorgu.DaireID,
-                                BinaID = a.BinaID,
-                                Durum = "A",
-                                EkMiAidatMi = "A"
-                            });
-                        }
+                            MakbuzID = yeni.MakbuzID, // <--- ARTIK ID VAR, ELLE ATIYORUZ
+                            AyAdi = a.AidatAy,
+                            YilAdi = a.AidatYil,
+                            Tutar = a.AidatTutar,
+                            DaireID = daireID,
+                            BinaID = BinaID,
+                            Durum = "A",
+                            EkMiAidatMi = "A"
+                        });
                     }
 
-                    //ek satırlarını ekle
-                    if (SecilenEkler != null)
+                    // Ek Satırları
+                    foreach (var e in ekListesi)
                     {
-                        var ekler = db.Eks.Where(x => SecilenEkler.Contains(x.EkID)).ToList();
-                        foreach (var e in ekler)
+                        e.Durum = "P";
+                        eklenecekSatirlar.Add(new MakbuzSatir
                         {
-                            e.Durum = "P"; 
-
-                            db.MakbuzSatirs.Add(new MakbuzSatir
-                            {
-                                MakbuzID = yeni.MakbuzID,
-                                AyAdi = e.EkAy,
-                                YilAdi = e.EkYil,
-                                Tutar = e.EkTutar,
-                                DaireID = dairesorgu.DaireID,
-                                BinaID = e.BinaID,
-                                Durum = "A",
-                                EkMiAidatMi = "E"
-                            });
-                        }
+                            MakbuzID = yeni.MakbuzID, // <--- ARTIK ID VAR, ELLE ATIYORUZ
+                            AyAdi = e.EkAy,
+                            YilAdi = e.EkYil,
+                            Tutar = e.EkTutar,
+                            DaireID = daireID,
+                            BinaID = BinaID,
+                            Durum = "A",
+                            EkMiAidatMi = "E"
+                        });
                     }
 
-                    db.SaveChanges();
-                    // başarılıysa commit et
+                    // --- 6. SATIRLARI KAYDET (KRİTİK ADIM 2) ---
+                    if (eklenecekSatirlar.Any())
+                    {
+                        db.MakbuzSatirs.AddRange(eklenecekSatirlar);
+                        db.SaveChanges(); // Şimdi de detayları kaydediyoruz.
+                    }
+
                     tran.Commit();
-
-                    TempData["Basarili"] = "Toplu makbuz başarıyla oluşturuldu.";
+                    TempData["Basarili"] = "Makbuz başarıyla oluşturuldu.";
                 }
                 catch (Exception ex)
                 {
-                    // hata varsa rollback yap
                     tran.Rollback();
                     TempData["Hata"] = "Hata oluştu: " + ex.Message;
                 }
             }
 
-            return RedirectToAction("Index", "TopluMakbuz", new { DaireNo = dairesorgu.DaireNo});
+            return RedirectToAction("Index", "TopluMakbuz", new { DaireNo = dairesorgu.DaireNo });
         }
 
 

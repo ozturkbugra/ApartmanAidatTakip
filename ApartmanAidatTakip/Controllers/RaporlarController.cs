@@ -443,12 +443,10 @@ namespace ApartmanAidatTakip.Controllers
                 ViewBag.Ay = ay;
                 ViewBag.Yil = yil;
 
-                // --- 1. BAŞLIK AYARLAMA ---
+                // --- 1. BAŞLIK AYARI ---
                 string raporBasligi = "";
                 if (yillik)
-                {
                     raporBasligi = yil + " Yılı Genel (Kümülatif) Gelir Gider Raporu";
-                }
                 else
                 {
                     string ayadi = System.Globalization.CultureInfo.GetCultureInfo("tr-TR").DateTimeFormat.GetMonthName(ay.Value);
@@ -456,30 +454,35 @@ namespace ApartmanAidatTakip.Controllers
                 }
                 ViewBag.Yazi = raporBasligi;
 
-                // --- 2. GİDER HESAPLAMALARI ---
-                var giderQuery = db.Giders.Where(x => x.BinaID == BinaID && x.GiderTarih.Value.Year == yil && x.Durum == "A");
+                // --- 2. GİDERLER (HIZLANDIRILDI - TEK SORGU) ---
+                // Veritabanına 10 kere gitmek yerine 1 kere gidip listeyi RAM'e alıyoruz.
+                var giderQuery = db.Giders.AsNoTracking().Where(x => x.BinaID == BinaID && x.GiderTarih.Value.Year == yil && x.Durum == "A");
 
                 if (!yillik)
                     giderQuery = giderQuery.Where(x => x.GiderTarih.Value.Month == ay);
 
-                // Kalem kalem giderler
-                ViewBag.elektrik = giderQuery.Where(x => x.GiderTuruID == 1).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-                ViewBag.su = giderQuery.Where(x => x.GiderTuruID == 2).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-                ViewBag.bakimonarim = giderQuery.Where(x => x.GiderTuruID == 3).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-                ViewBag.maas = giderQuery.Where(x => x.GiderTuruID == 4).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-                ViewBag.ssk = giderQuery.Where(x => x.GiderTuruID == 5).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-                ViewBag.demirbas = giderQuery.Where(x => x.GiderTuruID == 6).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-                ViewBag.yonetim = giderQuery.Where(x => x.GiderTuruID == 7).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-                ViewBag.temizlik = giderQuery.Where(x => x.GiderTuruID == 8).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-                ViewBag.diger = giderQuery.Where(x => x.GiderTuruID == 9).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-                ViewBag.yakitisinma = giderQuery.Where(x => x.GiderTuruID == 10).Sum(x => (decimal?)x.GiderTutar) ?? 0;
+                // Sadece lazım olan kolonları çekiyoruz (Select kullanımı performansı artırır)
+                var giderListesi = giderQuery.Select(x => new { x.GiderTuruID, x.GiderTutar }).ToList();
 
-                decimal toplamgider = giderQuery.Sum(x => (decimal?)x.GiderTutar) ?? 0;
-                decimal demirbasgider = giderQuery.Where(x => x.GiderTuruID == 6).Sum(x => (decimal?)x.GiderTutar) ?? 0;
+                // Hesaplamalar RAM üzerinde yapılıyor (Çok hızlı)
+                ViewBag.elektrik = giderListesi.Where(x => x.GiderTuruID == 1).Sum(x => x.GiderTutar) ?? 0;
+                ViewBag.su = giderListesi.Where(x => x.GiderTuruID == 2).Sum(x => x.GiderTutar) ?? 0;
+                ViewBag.bakimonarim = giderListesi.Where(x => x.GiderTuruID == 3).Sum(x => x.GiderTutar) ?? 0;
+                ViewBag.maas = giderListesi.Where(x => x.GiderTuruID == 4).Sum(x => x.GiderTutar) ?? 0;
+                ViewBag.ssk = giderListesi.Where(x => x.GiderTuruID == 5).Sum(x => x.GiderTutar) ?? 0;
+                ViewBag.demirbas = giderListesi.Where(x => x.GiderTuruID == 6).Sum(x => x.GiderTutar) ?? 0;
+                ViewBag.yonetim = giderListesi.Where(x => x.GiderTuruID == 7).Sum(x => x.GiderTutar) ?? 0;
+                ViewBag.temizlik = giderListesi.Where(x => x.GiderTuruID == 8).Sum(x => x.GiderTutar) ?? 0;
+                ViewBag.diger = giderListesi.Where(x => x.GiderTuruID == 9).Sum(x => x.GiderTutar) ?? 0;
+                ViewBag.yakitisinma = giderListesi.Where(x => x.GiderTuruID == 10).Sum(x => x.GiderTutar) ?? 0;
 
-                // --- 3. GELİR HESAPLAMALARI (HIZLANDIRILDI) ---
-                var makbuzQuery = db.Makbuzs.Where(x => x.BinaID == BinaID && x.MakbuzTarihi.Value.Year == yil && x.Durum == "A");
-                var tahsilatQuery = db.Tahsilats.Where(x => x.BinaID == BinaID && x.TahsilatTarih.Value.Year == yil && x.Durum == "A");
+                decimal toplamgider = giderListesi.Sum(x => x.GiderTutar) ?? 0;
+                decimal demirbasgider = giderListesi.Where(x => x.GiderTuruID == 6).Sum(x => x.GiderTutar) ?? 0;
+
+
+                // --- 3. GELİRLER (HIZLANDIRILDI - JOIN KULLANIMI) ---
+                var makbuzQuery = db.Makbuzs.AsNoTracking().Where(x => x.BinaID == BinaID && x.MakbuzTarihi.Value.Year == yil && x.Durum == "A");
+                var tahsilatQuery = db.Tahsilats.AsNoTracking().Where(x => x.BinaID == BinaID && x.TahsilatTarih.Value.Year == yil && x.Durum == "A");
 
                 if (!yillik)
                 {
@@ -487,29 +490,28 @@ namespace ApartmanAidatTakip.Controllers
                     tahsilatQuery = tahsilatQuery.Where(x => x.TahsilatTarih.Value.Month == ay);
                 }
 
-                // Tahsilatları topla
-                decimal tahsilatlardemirbas = tahsilatQuery.Where(x => x.DemirbasMi == true).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
-                decimal tahsilatlaraidat = tahsilatQuery.Where(x => x.DemirbasMi == false).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+                // Tahsilatları çek
+                var tahsilatListesi = tahsilatQuery.Select(x => new { x.DemirbasMi, x.TahsilatTutar }).ToList();
+                decimal tahsilatlardemirbas = tahsilatListesi.Where(x => x.DemirbasMi == true).Sum(x => x.TahsilatTutar) ?? 0;
+                decimal tahsilatlaraidat = tahsilatListesi.Where(x => x.DemirbasMi == false).Sum(x => x.TahsilatTutar) ?? 0;
 
-                // --- MAKBUZ HESAPLAMA (Optimize Edilen Kısım) ---
-                // Foreach yerine tek sorgu ile veritabanına sadece 1 kere gidiyoruz.
+                // Makbuzları Hızlı Çek (N+1 Çözümü)
                 decimal aidatmakbuztoplam = 0;
                 decimal ekmakbuztoplam = 0;
 
-                // Sadece ID'leri çekiyoruz
+                // İlgili makbuzların ID'lerini al
                 var makbuzIdListesi = makbuzQuery.Select(x => x.MakbuzID).ToList();
 
                 if (makbuzIdListesi.Any())
                 {
-                    // Tek seferde tüm detayları çekiyoruz
-                    var ilgiliSatirlar = db.MakbuzSatirs
-                                           .Where(x => makbuzIdListesi.Contains(x.MakbuzID ?? 0) && x.Durum == "A")
-                                           .Select(x => new { x.EkMiAidatMi, x.Tutar }) // Sadece gerekli kolonlar
-                                           .ToList();
+                    // TEK SORGU ile tüm detayları al
+                    var detaylar = db.MakbuzSatirs.AsNoTracking()
+                                     .Where(x => makbuzIdListesi.Contains(x.MakbuzID ?? 0) && x.Durum == "A")
+                                     .Select(x => new { x.EkMiAidatMi, x.Tutar })
+                                     .ToList();
 
-                    // RAM'de topluyoruz (Çok hızlı)
-                    aidatmakbuztoplam = ilgiliSatirlar.Where(x => x.EkMiAidatMi == "A").Sum(x => (decimal?)x.Tutar) ?? 0;
-                    ekmakbuztoplam = ilgiliSatirlar.Where(x => x.EkMiAidatMi == "E").Sum(x => (decimal?)x.Tutar) ?? 0;
+                    aidatmakbuztoplam = detaylar.Where(x => x.EkMiAidatMi == "A").Sum(x => x.Tutar) ?? 0;
+                    ekmakbuztoplam = detaylar.Where(x => x.EkMiAidatMi == "E").Sum(x => x.Tutar) ?? 0;
                 }
 
                 decimal donemGelirAidat = aidatmakbuztoplam + tahsilatlaraidat;
@@ -517,12 +519,14 @@ namespace ApartmanAidatTakip.Controllers
                 decimal donemToplamGelir = donemGelirAidat + donemGelirEk;
 
 
-                // --- 4. DEVİR (KASA) MANTIĞI (SENİN İSTEDİĞİN ORİJİNAL YAPI) --- 
+                // --- 4. DEVİR / AÇILIŞ MANTIĞI (SENİN İSTEDİĞİN YAPI) ---
 
-                // 1. AcilisBakiye'yi çek (Yedek)
+                // Önce AcilisBakiye'yi hazırda tut (Yedek Plan)
                 var acilis = db.AcilisBakiyes.FirstOrDefault(x => x.BinaID == BinaID);
 
-                // 2. Kasa Tablosunu Kontrol Et (Asıl)
+                // Kasa Tablosuna Bak (Asıl Plan)
+                // Eğer yıllık ise: Ocak ayının kasası o yılın başıdır.
+                // Eğer aylık ise: O ayın kasası o ayın başıdır.
                 int sorguAy = yillik ? 1 : ay.Value;
                 var devirKasa = db.Kasas.FirstOrDefault(x => x.BinaID == BinaID && x.AyKodu == sorguAy && x.KasaYil == yil);
 
@@ -532,14 +536,14 @@ namespace ApartmanAidatTakip.Controllers
 
                 if (devirKasa != null)
                 {
-                    // SENARYO A: Kasa tablosunda veri VAR.
+                    // SENARYO A: Kasa bulundu. O kayıttaki değer "Devir"dir.
                     devirToplam = devirKasa.KasaToplam ?? 0;
                     devirEk = devirKasa.KasaEk ?? 0;
                     devirAidat = devirKasa.KasaAidat ?? 0;
                 }
                 else
                 {
-                    // SENARYO B: Kasa tablosu NULL. AcilisBakiye kullan.
+                    // SENARYO B: Kasa kaydı YOK. AcilisBakiye'ye git.
                     if (acilis != null)
                     {
                         devirToplam = acilis.ToplamTutar ?? 0;
@@ -550,6 +554,7 @@ namespace ApartmanAidatTakip.Controllers
 
                 // --- 5. SONUÇLARI HESAPLA ---
                 // Yeni Kasa = Devir + Gelir - Gider
+
                 var yenikasa = (devirToplam + donemToplamGelir) - toplamgider;
                 var yenikasaek = (devirEk + donemGelirEk) - demirbasgider;
                 var yenikasaaidat = yenikasa - yenikasaek;
@@ -563,7 +568,7 @@ namespace ApartmanAidatTakip.Controllers
                 ViewBag.ek = donemGelirEk;
                 ViewBag.gelirtoplam = donemToplamGelir;
 
-                ViewBag.eskikasa = devirToplam;
+                ViewBag.eskikasa = devirToplam; // Devir Bakiyesi
                 ViewBag.eskikasaek = devirEk;
                 ViewBag.eskikasaaidat = devirAidat;
 
@@ -595,9 +600,7 @@ namespace ApartmanAidatTakip.Controllers
             // --- BAŞLIK ---
             string raporBasligi = "";
             if (yillik)
-            {
                 raporBasligi = yil + " Yılı Genel (Kümülatif) Gelir Gider Raporu";
-            }
             else
             {
                 string ayadi = System.Globalization.CultureInfo.GetCultureInfo("tr-TR").DateTimeFormat.GetMonthName(ay.Value);
@@ -605,27 +608,29 @@ namespace ApartmanAidatTakip.Controllers
             }
             ViewBag.Yazi = raporBasligi;
 
-            // --- GİDERLER ---
-            var giderQuery = db.Giders.Where(x => x.BinaID == BinaID && x.GiderTarih.Value.Year == yil && x.Durum == "A");
+            // --- GİDERLER (HIZLI) ---
+            var giderQuery = db.Giders.AsNoTracking().Where(x => x.BinaID == BinaID && x.GiderTarih.Value.Year == yil && x.Durum == "A");
             if (!yillik) giderQuery = giderQuery.Where(x => x.GiderTarih.Value.Month == ay);
 
-            ViewBag.elektrik = giderQuery.Where(x => x.GiderTuruID == 1).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-            ViewBag.su = giderQuery.Where(x => x.GiderTuruID == 2).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-            ViewBag.bakimonarim = giderQuery.Where(x => x.GiderTuruID == 3).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-            ViewBag.maas = giderQuery.Where(x => x.GiderTuruID == 4).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-            ViewBag.ssk = giderQuery.Where(x => x.GiderTuruID == 5).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-            ViewBag.demirbas = giderQuery.Where(x => x.GiderTuruID == 6).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-            ViewBag.yonetim = giderQuery.Where(x => x.GiderTuruID == 7).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-            ViewBag.temizlik = giderQuery.Where(x => x.GiderTuruID == 8).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-            ViewBag.diger = giderQuery.Where(x => x.GiderTuruID == 9).Sum(x => (decimal?)x.GiderTutar) ?? 0;
-            ViewBag.yakitisinma = giderQuery.Where(x => x.GiderTuruID == 10).Sum(x => (decimal?)x.GiderTutar) ?? 0;
+            var giderListesi = giderQuery.Select(x => new { x.GiderTuruID, x.GiderTutar }).ToList();
 
-            decimal toplamgider = giderQuery.Sum(x => (decimal?)x.GiderTutar) ?? 0;
-            decimal demirbasgider = giderQuery.Where(x => x.GiderTuruID == 6).Sum(x => (decimal?)x.GiderTutar) ?? 0;
+            ViewBag.elektrik = giderListesi.Where(x => x.GiderTuruID == 1).Sum(x => x.GiderTutar) ?? 0;
+            ViewBag.su = giderListesi.Where(x => x.GiderTuruID == 2).Sum(x => x.GiderTutar) ?? 0;
+            ViewBag.bakimonarim = giderListesi.Where(x => x.GiderTuruID == 3).Sum(x => x.GiderTutar) ?? 0;
+            ViewBag.maas = giderListesi.Where(x => x.GiderTuruID == 4).Sum(x => x.GiderTutar) ?? 0;
+            ViewBag.ssk = giderListesi.Where(x => x.GiderTuruID == 5).Sum(x => x.GiderTutar) ?? 0;
+            ViewBag.demirbas = giderListesi.Where(x => x.GiderTuruID == 6).Sum(x => x.GiderTutar) ?? 0;
+            ViewBag.yonetim = giderListesi.Where(x => x.GiderTuruID == 7).Sum(x => x.GiderTutar) ?? 0;
+            ViewBag.temizlik = giderListesi.Where(x => x.GiderTuruID == 8).Sum(x => x.GiderTutar) ?? 0;
+            ViewBag.diger = giderListesi.Where(x => x.GiderTuruID == 9).Sum(x => x.GiderTutar) ?? 0;
+            ViewBag.yakitisinma = giderListesi.Where(x => x.GiderTuruID == 10).Sum(x => x.GiderTutar) ?? 0;
 
-            // --- GELİRLER (HIZLANDIRILDI) ---
-            var makbuzQuery = db.Makbuzs.Where(x => x.BinaID == BinaID && x.MakbuzTarihi.Value.Year == yil && x.Durum == "A");
-            var tahsilatQuery = db.Tahsilats.Where(x => x.BinaID == BinaID && x.TahsilatTarih.Value.Year == yil && x.Durum == "A");
+            decimal toplamgider = giderListesi.Sum(x => x.GiderTutar) ?? 0;
+            decimal demirbasgider = giderListesi.Where(x => x.GiderTuruID == 6).Sum(x => x.GiderTutar) ?? 0;
+
+            // --- GELİRLER (HIZLI) ---
+            var makbuzQuery = db.Makbuzs.AsNoTracking().Where(x => x.BinaID == BinaID && x.MakbuzTarihi.Value.Year == yil && x.Durum == "A");
+            var tahsilatQuery = db.Tahsilats.AsNoTracking().Where(x => x.BinaID == BinaID && x.TahsilatTarih.Value.Year == yil && x.Durum == "A");
 
             if (!yillik)
             {
@@ -633,8 +638,9 @@ namespace ApartmanAidatTakip.Controllers
                 tahsilatQuery = tahsilatQuery.Where(x => x.TahsilatTarih.Value.Month == ay);
             }
 
-            decimal tahsilatlardemirbas = tahsilatQuery.Where(x => x.DemirbasMi == true).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
-            decimal tahsilatlaraidat = tahsilatQuery.Where(x => x.DemirbasMi == false).Sum(x => (decimal?)x.TahsilatTutar) ?? 0;
+            var tahsilatListesi = tahsilatQuery.Select(x => new { x.DemirbasMi, x.TahsilatTutar }).ToList();
+            decimal tahsilatlardemirbas = tahsilatListesi.Where(x => x.DemirbasMi == true).Sum(x => x.TahsilatTutar) ?? 0;
+            decimal tahsilatlaraidat = tahsilatListesi.Where(x => x.DemirbasMi == false).Sum(x => x.TahsilatTutar) ?? 0;
 
             decimal aidatmakbuztoplam = 0;
             decimal ekmakbuztoplam = 0;
@@ -642,20 +648,20 @@ namespace ApartmanAidatTakip.Controllers
             var makbuzIdListesi = makbuzQuery.Select(x => x.MakbuzID).ToList();
             if (makbuzIdListesi.Any())
             {
-                var ilgiliSatirlar = db.MakbuzSatirs
-                                       .Where(x => makbuzIdListesi.Contains(x.MakbuzID ?? 0) && x.Durum == "A")
-                                       .Select(x => new { x.EkMiAidatMi, x.Tutar })
-                                       .ToList();
+                var detaylar = db.MakbuzSatirs.AsNoTracking()
+                                 .Where(x => makbuzIdListesi.Contains(x.MakbuzID ?? 0) && x.Durum == "A")
+                                 .Select(x => new { x.EkMiAidatMi, x.Tutar })
+                                 .ToList();
 
-                aidatmakbuztoplam = ilgiliSatirlar.Where(x => x.EkMiAidatMi == "A").Sum(x => (decimal?)x.Tutar) ?? 0;
-                ekmakbuztoplam = ilgiliSatirlar.Where(x => x.EkMiAidatMi == "E").Sum(x => (decimal?)x.Tutar) ?? 0;
+                aidatmakbuztoplam = detaylar.Where(x => x.EkMiAidatMi == "A").Sum(x => x.Tutar) ?? 0;
+                ekmakbuztoplam = detaylar.Where(x => x.EkMiAidatMi == "E").Sum(x => x.Tutar) ?? 0;
             }
 
             decimal donemGelirAidat = aidatmakbuztoplam + tahsilatlaraidat;
             decimal donemGelirEk = ekmakbuztoplam + tahsilatlardemirbas;
             decimal donemToplamGelir = donemGelirAidat + donemGelirEk;
 
-            // --- DEVİR (KASA) MANTIĞI (SENİN İSTEDİĞİN GİBİ) ---
+            // --- DEVİR HESABI (DOĞRU MANTIK) ---
             var acilis = db.AcilisBakiyes.FirstOrDefault(x => x.BinaID == BinaID);
 
             int sorguAy = yillik ? 1 : ay.Value;
