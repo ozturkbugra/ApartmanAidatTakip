@@ -771,7 +771,7 @@ namespace ApartmanAidatTakip.Controllers
                 document.Add(new Paragraph(" "));
 
                 document.Add(new Paragraph($"Aidat Geliri: {ViewBag.aidat.ToString("N2")} TL", arialFont));
-                document.Add(new Paragraph($"Ek Gelir: {ViewBag.ek.ToString("N2")} TL", arialFont));
+                document.Add(new Paragraph($"Demirbaş Gelir: {ViewBag.ek.ToString("N2")} TL", arialFont));
 
                 Paragraph toplamGelirParagraph = new Paragraph($"Toplam Gelir: {ViewBag.gelirtoplam.ToString("N2")} TL", arialFontBold);
                 toplamGelirParagraph.Alignment = Element.ALIGN_LEFT;
@@ -783,7 +783,7 @@ namespace ApartmanAidatTakip.Controllers
                 kasaDevirParagraph.Alignment = Element.ALIGN_LEFT;
                 document.Add(kasaDevirParagraph);
 
-                Paragraph eskikasaAyrintiParagraph = new Paragraph($"(Aidat: {ViewBag.eskikasaaidat.ToString("N2")} TL | Ek: {ViewBag.eskikasaek.ToString("N2")} TL)", arialFont);
+                Paragraph eskikasaAyrintiParagraph = new Paragraph($"(Aidat: {ViewBag.eskikasaaidat.ToString("N2")} TL | Demirbaş: {ViewBag.eskikasaek.ToString("N2")} TL)", arialFont);
                 eskikasaAyrintiParagraph.Alignment = Element.ALIGN_LEFT;
                 document.Add(eskikasaAyrintiParagraph);
                 document.Add(new Paragraph(" "));
@@ -792,7 +792,7 @@ namespace ApartmanAidatTakip.Controllers
                 toplamKasaParagraph.Alignment = Element.ALIGN_CENTER;
                 document.Add(toplamKasaParagraph);
 
-                Paragraph yenikasaAyrintiParagraph = new Paragraph($"(Aidat: {ViewBag.yenikasaaidat.ToString("N2")} TL | Ek: {ViewBag.yenikasaek.ToString("N2")} TL)", arialFont);
+                Paragraph yenikasaAyrintiParagraph = new Paragraph($"(Aidat: {ViewBag.yenikasaaidat.ToString("N2")} TL | Demirbaş: {ViewBag.yenikasaek.ToString("N2")} TL)", arialFont);
                 yenikasaAyrintiParagraph.Alignment = Element.ALIGN_CENTER;
                 document.Add(yenikasaAyrintiParagraph);
 
