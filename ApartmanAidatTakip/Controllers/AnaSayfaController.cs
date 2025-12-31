@@ -1,20 +1,21 @@
 ﻿using ApartmanAidatTakip.Models;
 using ClosedXML.Excel;
+using DocumentFormat.OpenXml.Bibliography;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
 using Microsoft.Ajax.Utilities;
+using OfficeOpenXml; // EPPlus kütüphanesi
 using Org.BouncyCastle.Asn1.Ocsp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Helpers;
-using OfficeOpenXml; // EPPlus kütüphanesi
 using System.Web.Mvc;
-using DocumentFormat.OpenXml.Bibliography;
 
 namespace ApartmanAidatTakip.Controllers
 {
@@ -574,7 +575,7 @@ namespace ApartmanAidatTakip.Controllers
                 int yil = DateTime.Now.Year;
                 string ay = DateTime.Now.ToString("MMMM");
                 var aidattutar = db.Aidats.FirstOrDefault(x => x.AidatYil == yil && x.AidatAy == ay && x.BinaID == BinaID);
-                if(aidattutar != null)
+                if (aidattutar != null)
                 {
                     if (a.YonetimdeMi == "E" && daireler.YonetimdeMi == "H")
                     {
@@ -611,7 +612,7 @@ namespace ApartmanAidatTakip.Controllers
                         }
                     }
                 }
-               
+
 
                 a.AdSoyad = daireler.AdSoyad;
                 a.DaireDurum = daireler.DaireDurum;
@@ -1582,8 +1583,10 @@ namespace ApartmanAidatTakip.Controllers
 
         }
 
+
         [HttpPost]
-        public ActionResult GiderEkle(Gider gider)
+
+        public ActionResult GiderEkle(Gider gider, string GiderTutar)
         {
             HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
             int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
@@ -1591,47 +1594,56 @@ namespace ApartmanAidatTakip.Controllers
 
             try
             {
-                var songider = db.Giders.Where(x => x.BinaID == BinaID && x.Durum == "A").OrderByDescending(x => x.GiderNo).FirstOrDefault();
-                //Eğer son makbuz varsa numarasını al, yoksa 0 olarak başla
-                int gno = songider?.GiderNo ?? 0; // Nullable int türü için null kontrolü ve varsayılan değer 0
+                // --- PARA BİRİMİ ÇEVİRME ---
+                decimal parsedTutar = 0;
+                if (!string.IsNullOrEmpty(GiderTutar))
+                {
+                    // Türk formatına göre (nokta binlik, virgül kuruş) çevir
+                    parsedTutar = decimal.Parse(GiderTutar, new CultureInfo("tr-TR"));
+                }
+                gider.GiderTutar = parsedTutar;
+                // ---------------------------
 
-                // Yeni makbuz numarası oluştur
+                var songider = db.Giders.Where(x => x.BinaID == BinaID && x.Durum == "A").OrderByDescending(x => x.GiderNo).FirstOrDefault();
+                int gno = songider?.GiderNo ?? 0;
+
                 int songiderno = gno + 1;
                 gider.GiderNo = songiderno;
 
                 gider.BinaID = BinaID;
                 gider.GiderTarih = DateTime.Now.Date;
                 gider.Durum = "A";
+
                 db.Giders.Add(gider);
                 db.SaveChanges();
-                GiderNoDuzenle();
+
+                GiderNoDuzenle(); // Bu metodun varsa çalışır
+
                 Hareketler hareketler = new Hareketler()
                 {
                     BinaID = BinaID,
                     KullaniciID = KullaniciID,
+                    // Burada gider.GiderTutar kullanıyoruz (decimal hali)
                     OlayAciklama = gider.GiderTutar + " Tutarında " + gider.GiderNo + " numaralı gider eklendi.",
                     Tarih = DateTime.Now,
                     Tur = "Ekleme",
                 };
                 db.Hareketlers.Add(hareketler);
                 db.SaveChanges();
+
                 TempData["Basarili"] = "Gider Başarıyla Eklendi";
-
-
             }
-            catch (Exception)
+            catch (Exception ex) // Hata detayını görmek için ex ekledim
             {
-
-                TempData["Hata"] = "Bir Hata Oluştu!";
-
+                TempData["Hata"] = "Bir Hata Oluştu! " + ex.Message;
             }
 
+            // Viewbag doldurma kısımların...
             ViewBag.Giderler = db.GiderViews.Where(x => x.BinaID == BinaID && x.Durum == "A").OrderByDescending(x => x.GiderID).ToList();
             ViewBag.SilinenGiderler = db.GiderViews.Where(x => x.BinaID == BinaID && x.Durum == "P").OrderByDescending(x => x.GiderID).ToList();
-
             ViewBag.GiderTuru = db.GiderTurus.OrderBy(x => x.GiderTuruAdi).ToList();
-            return RedirectToAction("Giderler", "AnaSayfa");
 
+            return RedirectToAction("Giderler", "AnaSayfa");
         }
 
         public ActionResult GiderMakbuz(int? GiderID)
@@ -1778,7 +1790,8 @@ namespace ApartmanAidatTakip.Controllers
         }
 
         [HttpPost]
-        public ActionResult GiderGuncelle(Gider gider)
+        // DİKKAT: Parametreye 'string GiderTutar' ekledik.
+        public ActionResult GiderGuncelle(Gider gider, string GiderTutar)
         {
             if (Request.Cookies["KullaniciBilgileri"] == null)
             {
@@ -1791,6 +1804,15 @@ namespace ApartmanAidatTakip.Controllers
 
             try
             {
+                // --- 1. PARA BİRİMİ DÖNÜŞTÜRME (STRING -> DECIMAL) ---
+                // Gelen "10.000,50" verisini 10000.50 decimal sayısına çeviriyoruz.
+                decimal parsedTutar = 0;
+                if (!string.IsNullOrEmpty(GiderTutar))
+                {
+                    parsedTutar = decimal.Parse(GiderTutar, new CultureInfo("tr-TR"));
+                }
+                // -----------------------------------------------------
+
                 // Güncellenecek kaydı bul
                 var mevcutGider = db.Giders.FirstOrDefault(x => x.GiderID == gider.GiderID && x.BinaID == BinaID);
 
@@ -1810,13 +1832,13 @@ namespace ApartmanAidatTakip.Controllers
                     return RedirectToAction("Giderler", "AnaSayfa");
                 }
 
-                // Eski değerleri loglamak için tutabilirsin istersen
-                string eskiTutar = mevcutGider.GiderTutar.ToString();
-
                 // Güncelleme İşlemi
                 mevcutGider.GiderTuruID = gider.GiderTuruID;
                 mevcutGider.GiderAciklama = gider.GiderAciklama;
-                mevcutGider.GiderTutar = gider.GiderTutar;
+
+                // --- 2. ÇEVİRDİĞİMİZ TUTARI ATIYORUZ ---
+                mevcutGider.GiderTutar = parsedTutar;
+                // ---------------------------------------
 
                 db.SaveChanges();
 
@@ -1825,7 +1847,8 @@ namespace ApartmanAidatTakip.Controllers
                 {
                     BinaID = BinaID,
                     KullaniciID = KullaniciID,
-                    OlayAciklama = $"{mevcutGider.GiderNo} numaralı gider güncellendi. (Yeni Tutar: {gider.GiderTutar})",
+                    // Log mesajında da parsedTutar kullanıyoruz
+                    OlayAciklama = $"{mevcutGider.GiderNo} numaralı gider güncellendi. (Yeni Tutar: {parsedTutar.ToString("N2")})",
                     Tarih = DateTime.Now,
                     Tur = "Guncelleme",
                 };
@@ -1834,9 +1857,10 @@ namespace ApartmanAidatTakip.Controllers
 
                 TempData["Basarili"] = "Gider Başarıyla Güncellendi";
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                TempData["Hata"] = "Güncelleme sırasında bir hata oluştu!";
+                // Hata mesajını görmek için ex.Message ekledim, istersen kaldırabilirsin.
+                TempData["Hata"] = "Güncelleme sırasında bir hata oluştu! " + ex.Message;
             }
 
             return RedirectToAction("Giderler", "AnaSayfa");
@@ -2078,7 +2102,65 @@ namespace ApartmanAidatTakip.Controllers
         }
 
         [HttpPost]
-        public ActionResult TahsilatGuncelle(Tahsilat tahsilat)
+        public ActionResult TahsilatEkle(Tahsilat tahsilat, string TahsilatTutar)
+        {
+            HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
+            int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
+            int KullaniciID = Convert.ToInt32(userCookie.Values["KullaniciID"]);
+
+            try
+            {
+                // --- PARA BİRİMİ DÖNÜŞTÜRME (1.000,50 -> Decimal) ---
+                decimal parsedTutar = 0;
+                if (!string.IsNullOrEmpty(TahsilatTutar))
+                {
+                    parsedTutar = decimal.Parse(TahsilatTutar, new CultureInfo("tr-TR"));
+                }
+                tahsilat.TahsilatTutar = parsedTutar;
+                // ----------------------------------------------------
+
+                var sontahsilat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A").OrderByDescending(x => x.TahsilatNo).FirstOrDefault();
+                int tno = sontahsilat?.TahsilatNo ?? 0;
+
+                int sontahsilatno = tno + 1;
+                tahsilat.TahsilatNo = sontahsilatno;
+
+                tahsilat.BinaID = BinaID;
+                tahsilat.TahsilatTarih = DateTime.Now.Date;
+                tahsilat.Durum = "A";
+
+                db.Tahsilats.Add(tahsilat);
+                db.SaveChanges();
+
+                TempData["Basarili"] = "Tahsilat Başarıyla Eklendi";
+
+                Hareketler hareketler = new Hareketler()
+                {
+                    BinaID = BinaID,
+                    KullaniciID = KullaniciID,
+                    // Log mesajında da parsedTutar kullanıyoruz
+                    OlayAciklama = parsedTutar.ToString("N2") + " Tutarında " + tahsilat.TahsilatNo + " numaralı tahsilat eklendi.",
+                    Tarih = DateTime.Now,
+                    Tur = "Ekleme",
+                };
+                db.Hareketlers.Add(hareketler);
+                db.SaveChanges();
+
+                TahsilatNoDuzenle(); // Varsa çalışır
+            }
+            catch (Exception ex)
+            {
+                TempData["Hata"] = "Bir Hata Oluştu! " + ex.Message;
+            }
+
+            ViewBag.Tahsilatlar = db.TahsilatViews.Where(x => x.BinaID == BinaID && x.Durum == "A").OrderByDescending(x => x.TahsilatID).ToList();
+            ViewBag.SilinenTahsilatlar = db.TahsilatViews.Where(x => x.BinaID == BinaID && x.Durum == "P").OrderByDescending(x => x.TahsilatID).ToList();
+
+            return RedirectToAction("Tahsilat", "AnaSayfa");
+        }
+
+        [HttpPost]
+        public ActionResult TahsilatGuncelle(Tahsilat tahsilat, string TahsilatTutar)
         {
             if (Request.Cookies["KullaniciBilgileri"] == null)
             {
@@ -2091,6 +2173,14 @@ namespace ApartmanAidatTakip.Controllers
 
             try
             {
+                // --- PARA BİRİMİ DÖNÜŞTÜRME ---
+                decimal parsedTutar = 0;
+                if (!string.IsNullOrEmpty(TahsilatTutar))
+                {
+                    parsedTutar = decimal.Parse(TahsilatTutar, new CultureInfo("tr-TR"));
+                }
+                // ------------------------------
+
                 var mevcutTahsilat = db.Tahsilats.FirstOrDefault(x => x.TahsilatID == tahsilat.TahsilatID && x.BinaID == BinaID);
 
                 if (mevcutTahsilat == null)
@@ -2110,7 +2200,8 @@ namespace ApartmanAidatTakip.Controllers
 
                 // Güncelleme
                 mevcutTahsilat.TahsilatAciklama = tahsilat.TahsilatAciklama;
-                mevcutTahsilat.TahsilatTutar = tahsilat.TahsilatTutar;
+                // Çevrilen tutarı atıyoruz
+                mevcutTahsilat.TahsilatTutar = parsedTutar;
                 mevcutTahsilat.DemirbasMi = tahsilat.DemirbasMi;
 
                 db.SaveChanges();
@@ -2120,7 +2211,7 @@ namespace ApartmanAidatTakip.Controllers
                 {
                     BinaID = BinaID,
                     KullaniciID = KullaniciID,
-                    OlayAciklama = $"{mevcutTahsilat.TahsilatNo} numaralı tahsilat güncellendi. (Yeni Tutar: {tahsilat.TahsilatTutar})",
+                    OlayAciklama = $"{mevcutTahsilat.TahsilatNo} numaralı tahsilat güncellendi. (Yeni Tutar: {parsedTutar.ToString("N2")})",
                     Tarih = DateTime.Now,
                     Tur = "Guncelleme",
                 };
@@ -2129,63 +2220,12 @@ namespace ApartmanAidatTakip.Controllers
 
                 TempData["Basarili"] = "Tahsilat Başarıyla Güncellendi";
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                TempData["Hata"] = "Güncelleme sırasında bir hata oluştu!";
+                TempData["Hata"] = "Güncelleme sırasında bir hata oluştu! " + ex.Message;
             }
 
             return RedirectToAction("Tahsilat", "AnaSayfa");
-        }
-
-        [HttpPost]
-        public ActionResult TahsilatEkle(Tahsilat tahsilat)
-        {
-            HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
-            int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
-            int KullaniciID = Convert.ToInt32(userCookie.Values["KullaniciID"]);
-
-            try
-            {
-
-                var sontahsilat = db.Tahsilats.Where(x => x.BinaID == BinaID && x.Durum == "A").OrderByDescending(x => x.TahsilatNo).FirstOrDefault();
-                //Eğer son makbuz varsa numarasını al, yoksa 0 olarak başla
-                int tno = sontahsilat?.TahsilatNo ?? 0; // Nullable int türü için null kontrolü ve varsayılan değer 0
-
-                // Yeni makbuz numarası oluştur
-                int sontahsilatno = tno + 1;
-                tahsilat.TahsilatNo = sontahsilatno;
-
-                tahsilat.BinaID = BinaID;
-                tahsilat.TahsilatTarih = DateTime.Now.Date;
-                tahsilat.Durum = "A";
-                db.Tahsilats.Add(tahsilat);
-                db.SaveChanges();
-                TempData["Basarili"] = "Tahsilat Başarıyla Eklendi";
-                Hareketler hareketler = new Hareketler()
-                {
-                    BinaID = BinaID,
-                    KullaniciID = KullaniciID,
-                    OlayAciklama = tahsilat.TahsilatTutar + " Tutarında " + tahsilat.TahsilatNo + " numaralı tahsilat eklendi.",
-                    Tarih = DateTime.Now,
-                    Tur = "Ekleme",
-                };
-                db.Hareketlers.Add(hareketler);
-                db.SaveChanges();
-                TahsilatNoDuzenle();
-            }
-            catch (Exception)
-            {
-
-                TempData["Hata"] = "Bir Hata Oluştu!";
-
-            }
-
-            ViewBag.Tahsilatlar = db.TahsilatViews.Where(x => x.BinaID == BinaID && x.Durum == "A").OrderByDescending(x => x.TahsilatID).ToList();
-            ViewBag.SilinenTahsilatlar = db.TahsilatViews.Where(x => x.BinaID == BinaID && x.Durum == "P").OrderByDescending(x => x.TahsilatID).ToList();
-
-
-            return RedirectToAction("Tahsilat", "AnaSayfa");
-
         }
 
         public ActionResult TahsilatMakbuz(int? TahsilatID)

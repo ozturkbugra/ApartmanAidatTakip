@@ -431,11 +431,12 @@
                         <label class="form-label text-muted small fw-bold text-uppercase">Tutar</label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text bg-light border-end-0">₺</span>
-                            <input type="text" name="GiderTutar" class="form-control border-start-0 ps-0 fw-bold text-primary"
+                            <input type="text"
+                                   name="GiderTutar"
+                                   class="form-control border-start-0 ps-0 fw-bold text-primary money-input"
                                    placeholder="0,00"
-                                   inputmode="decimal"
-                                   onkeypress="return isNumberKey(event)"
-                                   required>
+                                   required
+                                   autocomplete="off">
                         </div>
                     </div>
                 </div>
@@ -476,10 +477,12 @@
                         <label class="form-label text-muted small fw-bold text-uppercase">Tutar</label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text bg-light border-end-0">₺</span>
-                            <input type="text" name="GiderTutar" id="update_GiderTutar" class="form-control border-start-0 ps-0 fw-bold text-warning"
-                                   inputmode="decimal"
-                                   onkeypress="return isNumberKey(event)"
-                                   required>
+                            <input type="text"
+                                   name="GiderTutar"
+                                   id="update_GiderTutar"
+                                   class="form-control border-start-0 ps-0 fw-bold text-warning money-input"
+                                   required
+                                   autocomplete="off">
                         </div>
                     </div>
                 </div>
@@ -495,13 +498,70 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
-        // Tooltipleri aktif et
+
+        // 1. TOOLTIP AKTİVASYONU (Bootstrap)
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
           return new bootstrap.Tooltip(tooltipTriggerEl)
         })
 
-        // --- 1. SweetAlert Bildirimleri ---
+        // ============================================================
+        // 2. OTOMATİK PARA FORMATLAMA (1.000,50 ŞEKLİNDE)
+        // ============================================================
+        $('body').on('input', '.money-input', function() {
+            var val = $(this).val();
+
+            // Sadece rakam ve virgül kalacak şekilde temizle
+            val = val.replace(/[^0-9,]/g, '');
+
+            // Virgül var mı kontrol et
+            if (val.indexOf(',') > -1) {
+                var parts = val.split(',');
+
+                // Tam kısım: Binlik ayracı (nokta) ekle
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+                // Kuruş kısım: Sadece ilk 2 basamağı al
+                if (parts[1].length > 2) {
+                    parts[1] = parts[1].substring(0, 2);
+                }
+
+                // Birleştir
+                $(this).val(parts[0] + ',' + parts[1]);
+            } else {
+                // Virgül yoksa sadece binlik nokta ekle
+                val = val.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                $(this).val(val);
+            }
+        });
+
+        // ============================================================
+        // 3. DÜZENLEME BUTONU İŞLEMLERİ
+        // ============================================================
+        $('.btn-duzenle').click(function() {
+            var id = $(this).data('id');
+            var turId = $(this).data('turid');
+            var aciklama = $(this).data('aciklama');
+
+            // Veri tabanından gelen string tutar (Örn: "1250,50")
+            var tutar = $(this).data('tutar');
+
+            // Modal Inputlarına Verileri Bas
+            $('#update_GiderID').val(id);
+            $('#update_GiderTuruID').val(turId);
+            $('#update_GiderAciklama').val(aciklama);
+
+            // Tutarı yaz ve otomatik formatlamayı tetikle
+            $('#update_GiderTutar').val(tutar).trigger('input');
+
+            // Modalı Aç
+            var myModal = new bootstrap.Modal(document.getElementById('GuncelleModal'));
+            myModal.show();
+        });
+
+        // ============================================================
+        // 4. SWEETALERT BİLDİRİMLERİ (SERVER TARAFLI)
+        // ============================================================
         @if (TempData["Hata"] != null)
         {
             <text>
@@ -529,29 +589,14 @@
                 });
             </text>
         }
-
-        // --- 2. Düzenle Butonu İşlemleri ---
-        $('.btn-duzenle').click(function() {
-            var id = $(this).data('id');
-            var turId = $(this).data('turid');
-            var aciklama = $(this).data('aciklama');
-            var tutar = $(this).data('tutar'); // F2 formatında (1250,50) gelir, nokta yoktur
-
-            // Modal inputlarına verileri bas
-            $('#update_GiderID').val(id);
-            $('#update_GiderTuruID').val(turId);
-            $('#update_GiderAciklama').val(aciklama);
-            $('#update_GiderTutar').val(tutar);
-
-            // Modalı aç
-            var myModal = new bootstrap.Modal(document.getElementById('GuncelleModal'));
-            myModal.show();
-        });
     });
 
-    // --- 3. Silme Onayı Fonksiyonu ---
+    // ============================================================
+    // 5. SİLME ONAYI FONKSİYONU
+    // ============================================================
     function confirmDeleteExpense(event, id) {
-        event.preventDefault();
+        event.preventDefault(); // Linke gitmeyi durdur
+
         Swal.fire({
             title: 'Silmek İstiyor musunuz?',
             text: "Bu gider kaydı kalıcı olarak silinecek ve geri alınamaz!",
@@ -569,21 +614,9 @@
             buttonsStyling: false
         }).then((result) => {
             if (result.isConfirmed) {
+                // Onay verilirse silme linkine git
                 window.location.href = '/AnaSayfa/GiderSil/' + id;
             }
         })
-    }
-
-    // --- 4. Sadece Rakam ve Tek Virgül İzni (Nokta Engelli) ---
-    function isNumberKey(evt) {
-        var charCode = (evt.which) ? evt.which : evt.keyCode;
-        var input = evt.target;
-        if (charCode == 44) {
-            if (input.value.indexOf(',') !== -1) return false;
-            return true;
-        }
-        if (charCode == 46) return false;
-        if (charCode > 31 && (charCode < 48 || charCode > 57)) return false;
-        return true;
     }
 </script>

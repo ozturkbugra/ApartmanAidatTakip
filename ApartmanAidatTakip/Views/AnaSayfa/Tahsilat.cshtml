@@ -365,11 +365,12 @@
                         <label class="form-label text-muted small fw-bold text-uppercase">Tutar</label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text bg-light border-end-0">₺</span>
-                            <input type="text" name="TahsilatTutar" class="form-control border-start-0 ps-0 fw-bold text-success"
+                            <input type="text"
+                                   name="TahsilatTutar"
+                                   class="form-control border-start-0 ps-0 fw-bold text-success money-input"
                                    placeholder="0,00"
-                                   inputmode="decimal"
-                                   onkeypress="return isNumberKey(event)"
-                                   required>
+                                   required
+                                   autocomplete="off">
                         </div>
                     </div>
                 </div>
@@ -408,10 +409,12 @@
                         <label class="form-label text-muted small fw-bold text-uppercase">Tutar</label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text bg-light border-end-0">₺</span>
-                            <input type="text" name="TahsilatTutar" id="update_TahsilatTutar" class="form-control border-start-0 ps-0 fw-bold text-warning"
-                                   inputmode="decimal"
-                                   onkeypress="return isNumberKey(event)"
-                                   required>
+                            <input type="text"
+                                   name="TahsilatTutar"
+                                   id="update_TahsilatTutar"
+                                   class="form-control border-start-0 ps-0 fw-bold text-warning money-input"
+                                   required
+                                   autocomplete="off">
                         </div>
                     </div>
                 </div>
@@ -433,10 +436,62 @@
           return new bootstrap.Tooltip(tooltipTriggerEl)
         })
 
-        // --- DATATABLE BAŞLATMA ---
-      
+        // ============================================================
+        // 1. OTOMATİK PARA FORMATLAMA (1.000,50 ŞEKLİNDE)
+        // ============================================================
+        $('body').on('input', '.money-input', function() {
+            var val = $(this).val();
 
-        // --- BİLDİRİMLER ---
+            // Sadece rakam ve virgül kalacak şekilde temizle
+            val = val.replace(/[^0-9,]/g, '');
+
+            // Virgül var mı kontrol et
+            if (val.indexOf(',') > -1) {
+                var parts = val.split(',');
+
+                // Tam kısım: Binlik ayracı (nokta) ekle
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+                // Kuruş kısım: Sadece ilk 2 basamağı al
+                if (parts[1].length > 2) {
+                    parts[1] = parts[1].substring(0, 2);
+                }
+
+                // Birleştir
+                $(this).val(parts[0] + ',' + parts[1]);
+            } else {
+                // Virgül yoksa sadece binlik nokta ekle
+                val = val.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+                $(this).val(val);
+            }
+        });
+
+        // ============================================================
+        // 2. DÜZENLEME BUTONU (DataTable Uyumlu)
+        // ============================================================
+        $(document).on('click', '.btn-duzenle', function () {
+
+            var id = $(this).data('id');
+            var aciklama = $(this).data('aciklama');
+            var tutar = $(this).data('tutar'); // "1250,50" formatında gelir
+            var demirbas = $(this).data('demirbas');
+
+            // Modal inputlarına verileri bas
+            $('#update_TahsilatID').val(id);
+            $('#update_TahsilatAciklama').val(aciklama);
+            $('#update_DemirbasMi').val(demirbas);
+
+            // Tutarı yaz ve otomatik formatlamayı tetikle
+            $('#update_TahsilatTutar').val(tutar).trigger('input');
+
+            // Modalı aç
+            var myModal = new bootstrap.Modal(document.getElementById('GuncelleModal'));
+            myModal.show();
+        });
+
+        // ============================================================
+        // 3. BİLDİRİMLER (SweetAlert)
+        // ============================================================
         @if (TempData["Hata"] != null)
         {
             <text>
@@ -464,31 +519,11 @@
                 });
             </text>
         }
-
-        // --- DÜZENLEME BUTONU ---
-        // --- DÜZENLEME BUTONU (FIX: DataTable Uyumlu) ---
-        // '.click' yerine '$(document).on("click", ...)' kullanıyoruz.
-        // Bu sayede 2. sayfaya da geçsen, arama da yapsan buton çalışır.
-        $(document).on('click', '.btn-duzenle', function () {
-
-            var id = $(this).data('id');
-            var aciklama = $(this).data('aciklama');
-            var tutar = $(this).data('tutar');
-            var demirbas = $(this).data('demirbas'); // "True" veya "False" gelir
-
-            // Modal inputlarına verileri bas
-            $('#update_TahsilatID').val(id);
-            $('#update_TahsilatAciklama').val(aciklama);
-            $('#update_TahsilatTutar').val(tutar);
-            $('#update_DemirbasMi').val(demirbas); // SelectBox'ı otomatik seçer
-
-            // Modalı aç
-            var myModal = new bootstrap.Modal(document.getElementById('GuncelleModal'));
-            myModal.show();
-        });
     });
 
-    // --- SİLME ONAYI ---
+    // ============================================================
+    // 4. SİLME ONAYI
+    // ============================================================
     function confirmDelete(event, id) {
         event.preventDefault();
         Swal.fire({
@@ -511,18 +546,5 @@
                 window.location.href = '/AnaSayfa/TahsilatSil/' + id;
             }
         })
-    }
-
-    // --- KÜSÜRAT KONTROL (Sadece virgül ve sayı) ---
-    function isNumberKey(evt) {
-        var charCode = (evt.which) ? evt.which : evt.keyCode;
-        var input = evt.target;
-        if (charCode == 44) {
-            if (input.value.indexOf(',') !== -1) return false;
-            return true;
-        }
-        if (charCode == 46) return false; // Nokta yasak
-        if (charCode > 31 && (charCode < 48 || charCode > 57)) return false;
-        return true;
     }
 </script>
