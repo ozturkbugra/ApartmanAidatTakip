@@ -2490,15 +2490,14 @@ namespace ApartmanAidatTakip.Controllers
         {
             if (Request.Cookies["KullaniciBilgileri"] == null)
             {
-
                 return RedirectToAction("Login", "AnaSayfa");
             }
+
             Session["Aktif"] = "DaireSorgu";
             Sabit();
+
             HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
             int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
-
-
 
             if (DaireNo == null)
             {
@@ -2514,13 +2513,23 @@ namespace ApartmanAidatTakip.Controllers
                     TempData["Hata"] = "Daire Bulunamadı";
                     return View();
                 }
+
                 ViewBag.b = varmi;
-                ViewBag.Aidat = db.Aidats.Where(x => x.BinaID == BinaID && x.DaireNo == DaireNo && x.Durum == "A").ToList();
-                ViewBag.Ek = db.Eks.Where(x => x.BinaID == BinaID && x.DaireNo == DaireNo && x.Durum == "A").ToList();
+
+                // AİDATLAR: Hem Ödenen (P) Hem Ödenmeyen (A) gelsin, ID'ye göre tersten sıralansın
+                ViewBag.Aidat = db.Aidats
+                    .Where(x => x.BinaID == BinaID && x.DaireNo == DaireNo && (x.Durum == "A" || x.Durum == "P"))
+                    .OrderByDescending(x => x.AidatID)
+                    .ToList();
+
+                // DEMİRBAŞLAR: Hem Ödenen (P) Hem Ödenmeyen (A) gelsin, ID'ye göre tersten sıralansın
+                ViewBag.Ek = db.Eks
+                    .Where(x => x.BinaID == BinaID && x.DaireNo == DaireNo && (x.Durum == "A" || x.Durum == "P"))
+                    .OrderByDescending(x => x.EkID)
+                    .ToList();
+
                 ViewBag.DaireNo = DaireNo;
-
             }
-
 
             return View();
         }

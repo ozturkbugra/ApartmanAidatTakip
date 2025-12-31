@@ -35,12 +35,15 @@
         overflow: hidden;
     }
 
-    .search-wrapper::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0; height: 5px;
-        background: var(--primary-grad);
-    }
+        .search-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--primary-grad);
+        }
 
     .search-input-group {
         max-width: 500px;
@@ -55,10 +58,11 @@
         font-size: 1.1rem;
         height: 60px;
     }
-    .form-control-lg:focus {
-        border-color: #4f46e5;
-        box-shadow: 0 0 0 5px rgba(79, 70, 229, 0.1);
-    }
+
+        .form-control-lg:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 5px rgba(79, 70, 229, 0.1);
+        }
 
     .btn-search-circle {
         position: absolute;
@@ -75,7 +79,10 @@
         justify-content: center;
         transition: transform 0.2s;
     }
-    .btn-search-circle:hover { transform: scale(1.05); }
+
+        .btn-search-circle:hover {
+            transform: scale(1.05);
+        }
 
     /* Profil Kartı (Sonuç) */
     .profile-card {
@@ -108,8 +115,20 @@
     .total-debt-box {
         text-align: right;
     }
-    .debt-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
-    .debt-amount { font-size: 2rem; font-weight: 700; color: #dc2626; line-height: 1; }
+
+    .debt-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* Rengi HTML içinde dinamik veriyoruz, buradan kaldırdım */
+    .debt-amount {
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 1;
+    }
 
     /* Borç Tabloları */
     .debt-table-card {
@@ -131,8 +150,15 @@
         gap: 10px;
     }
 
-    .header-danger { background: var(--danger-soft); color: var(--danger-text); }
-    .header-warning { background: var(--warning-soft); color: var(--warning-text); }
+    .header-danger {
+        background: var(--danger-soft);
+        color: var(--danger-text);
+    }
+
+    .header-warning {
+        background: var(--warning-soft);
+        color: var(--warning-text);
+    }
 
     .modern-table td {
         padding: 12px 20px;
@@ -141,21 +167,49 @@
         font-weight: 500;
         color: #334155;
     }
-    .modern-table tr:last-child td { border-bottom: none; }
+
+    .modern-table tr:last-child td {
+        border-bottom: none;
+    }
 
     /* Animasyon */
     @@keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
+    .status-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        border-radius: 4px;
+        margin-left: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .badge-paid {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .badge-unpaid {
+        background: #fee2e2;
+        color: #991b1b;
+    }
 </style>
 
 <div class="container-fluid py-4">
 
     <div class="search-wrapper">
-        <h3 class="fw-bold mb-3 text-dark">Daire Borç Sorgulama</h3>
-        <p class="text-muted mb-4">Borç durumunu görüntülemek istediğiniz daire numarasını giriniz.</p>
+        <h3 class="fw-bold mb-3 text-dark">Daire Hesap Ekstresi</h3>
+        <p class="text-muted mb-4">Borç ve ödeme geçmişini görüntülemek için daire numarasını giriniz.</p>
 
         <form action="/AnaSayfa/DaireSorgu" method="get">
             <div class="search-input-group">
@@ -184,8 +238,10 @@
             </div>
 
             <div class="total-debt-box mt-3 mt-md-0">
-                <div class="debt-label">Toplam Güncel Borç</div>
-                <div class="debt-amount">@ViewBag.b.Borc.ToString("N2") @tl</div>
+                <div class="debt-label">Toplam Kalan Borç</div>
+                <div class="debt-amount" style="color: @(ViewBag.b.Borc > 0 ? "#dc2626" : "#059669")">
+                    @ViewBag.b.Borc.ToString("N2") @tl
+                </div>
             </div>
         </div>
 
@@ -194,27 +250,38 @@
             <div class="col-lg-6">
                 <div class="debt-table-card">
                     <div class="card-header-clean header-danger">
-                        <i class="bi bi-calendar-event"></i> Aİdat Borçları
+                        <i class="bi bi-calendar-event"></i> Aidat Hareketleri
                     </div>
                     <div class="table-responsive">
                         <table class="table modern-table mb-0 datatable">
                             <thead>
                                 <tr class="text-muted small">
                                     <th class="ps-4">Dönem</th>
-                                    <th class="text-end pe-4">Tutar</th>
+                                    <th class="text-end pe-4">Tutar & Durum</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var item in ViewBag.Aidat)
                                 {
+                                    // Renk ve Durum Belirleme
+                                    string renkClass = item.Durum == "P" ? "text-success" : "text-danger";
+                                    string badgeClass = item.Durum == "P" ? "badge-paid" : "badge-unpaid";
+                                    string durumMetin = item.Durum == "P" ? "ÖDENDİ" : "ÖDENMEDİ";
+                                    string icon = item.Durum == "P" ? "bi-check-circle-fill" : "bi-exclamation-circle-fill";
+
                                     <tr>
-                                        <td class="ps-4 fw-bold">@item.AidatAy - @item.AidatYil</td>
-                                        <td class="text-end pe-4 fw-bold text-danger">@item.AidatTutar.ToString("N2") @tl</td>
+                                        <td class="ps-4 fw-bold text-dark">@item.AidatAy - @item.AidatYil</td>
+                                        <td class="text-end pe-4">
+                                            <span class="fw-bold @renkClass" style="font-size: 1.1rem;">@item.AidatTutar.ToString("N2") @tl</span>
+                                            <span class="status-badge @badgeClass">
+                                                <i class="bi @icon me-1"></i> @durumMetin
+                                            </span>
+                                        </td>
                                     </tr>
                                 }
                                 @if (ViewBag.Aidat.Count == 0)
                                 {
-                                    <tr><td colspan="2" class="text-center py-4 text-muted small">Aidat borcu bulunmamaktadır.</td></tr>
+                                    <tr><td colspan="2" class="text-center py-4 text-muted small">Kayıt bulunamadı.</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -225,27 +292,43 @@
             <div class="col-lg-6">
                 <div class="debt-table-card">
                     <div class="card-header-clean header-warning">
-                        <i class="bi bi-box-seam"></i> Demİrbaş Borçları
+                        <i class="bi bi-box-seam"></i> Demirbaş Hareketleri
                     </div>
                     <div class="table-responsive">
                         <table class="table modern-table mb-0 datatable">
                             <thead>
                                 <tr class="text-muted small">
                                     <th class="ps-4">Dönem</th>
-                                    <th class="text-end pe-4">Tutar</th>
+                                    <th class="text-end pe-4">Tutar & Durum</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach (var item in ViewBag.Ek)
                                 {
+                                    // Renk ve Durum Belirleme
+                                    string renkClass = item.Durum == "P" ? "text-success" : "text-danger"; // Demirbaş ödenmediyse de kırmızı olsun, dikkat çeksin
+                                    if (item.Durum != "P") { renkClass = "text-warning"; } // Veya borçsa turuncu kalsın diyorsan burayı aç
+
+                                    // Ben standart olsun diye Ödenmedi=Kırmızı, Ödendi=Yeşil yapıyorum:
+                                    string textClass = item.Durum == "P" ? "text-success" : "text-danger";
+
+                                    string badgeClass = item.Durum == "P" ? "badge-paid" : "badge-unpaid";
+                                    string durumMetin = item.Durum == "P" ? "ÖDENDİ" : "ÖDENMEDİ";
+                                    string icon = item.Durum == "P" ? "bi-check-circle-fill" : "bi-exclamation-circle-fill";
+
                                     <tr>
-                                        <td class="ps-4 fw-bold">@item.EkAy - @item.EkYil</td>
-                                        <td class="text-end pe-4 fw-bold" style="color: #d97706;">@item.EkTutar.ToString("N2") @tl</td>
+                                        <td class="ps-4 fw-bold text-dark">@item.EkAy - @item.EkYil</td>
+                                        <td class="text-end pe-4">
+                                            <span class="fw-bold @textClass" style="font-size: 1.1rem;">@item.EkTutar.ToString("N2") @tl</span>
+                                            <span class="status-badge @badgeClass">
+                                                <i class="bi @icon me-1"></i> @durumMetin
+                                            </span>
+                                        </td>
                                     </tr>
                                 }
                                 @if (ViewBag.Ek.Count == 0)
                                 {
-                                    <tr><td colspan="2" class="text-center py-4 text-muted small">Demirbaş borcu bulunmamaktadır.</td></tr>
+                                    <tr><td colspan="2" class="text-center py-4 text-muted small">Kayıt bulunamadı.</td></tr>
                                 }
                             </tbody>
                         </table>
@@ -258,7 +341,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
     $(document).ready(function() {
         @if (TempData["Hata"] != null)
@@ -269,18 +351,6 @@
                     title: 'HATA!',
                     text: '@Html.Raw(HttpUtility.JavaScriptStringEncode(TempData["Hata"].ToString()))',
                     confirmButtonColor: '#d33'
-                });
-            </text>
-        }
-
-        @if (TempData["Basarili"] != null)
-        {
-            <text>
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Başarılı!',
-                    text: '@Html.Raw(HttpUtility.JavaScriptStringEncode(TempData["Basarili"].ToString()))',
-                    confirmButtonColor: '#059669'
                 });
             </text>
         }
