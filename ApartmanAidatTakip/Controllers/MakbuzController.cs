@@ -126,44 +126,60 @@ namespace ApartmanAidatTakip.Controllers
         [HttpPost]
         public ActionResult Olustur(Makbuz makbuz)
         {
-            HttpCookie userCookie = Request.Cookies["KullaniciBilgileri"];
-            int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
-            if (Session["DonemSorgu"].ToString() == "0")
+            var userCookie = Request.Cookies["KullaniciBilgileri"];
+            if (userCookie == null || string.IsNullOrEmpty(userCookie.Values["BinaID"]))
             {
-                TempData["Hata"] = DateTime.Now.ToString("MMMM") + " Dönemini eklemediğiniz için bu işlemi yapamazsınız";
-                return RedirectToAction("Index", "Makbuz");
+                return RedirectToAction("Login", "AnaSayfa");
             }
 
-            if(makbuz.DaireID == 0)
+            int BinaID = Convert.ToInt32(userCookie.Values["BinaID"]);
+                      
+
+            if (makbuz == null || makbuz.DaireID == 0)
             {
                 return RedirectToAction("Index", "Makbuz");
-
             }
 
             // Yeni makbuz bilgilerini ayarla
             makbuz.BinaID = BinaID;
             makbuz.Durum = "A";
             makbuz.OnayliMi = false;
-            var s = db.Dairelers.Where(x => x.BinaID == BinaID && x.DaireNo == makbuz.DaireID).FirstOrDefault();
+
+            var s = db.Dairelers
+                      .FirstOrDefault(x => x.BinaID == BinaID && x.DaireNo == makbuz.DaireID);
+
+            if (s == null)
+            {
+                TempData["Hata"] = "Daire bulunamadı!";
+                return RedirectToAction("Index", "Makbuz");
+            }
+
             makbuz.DaireID = s.DaireID;
             makbuz.MakbuzTarihi = DateTime.Now.Date;
             makbuz.MabuzTutar = 0;
 
-
-            // Yeni makbuzu veritabanına ekle
             db.Makbuzs.Add(makbuz);
             db.SaveChanges();
 
-            // En son eklenen makbuzun ID ve DaireID bilgilerini al
-            var sonmakbuzid = db.Makbuzs.Where(x => x.BinaID == BinaID).OrderByDescending(x => x.MakbuzID).FirstOrDefault();
-            Session["MakbuzID"] = sonmakbuzid.MakbuzID;
-            Session["DaireID"] = sonmakbuzid.DaireID;
-           
+            var sonmakbuz = db.Makbuzs
+                              .Where(x => x.BinaID == BinaID)
+                              .OrderByDescending(x => x.MakbuzID)
+                              .FirstOrDefault();
+
+            if (sonmakbuz == null)
+            {
+                TempData["Hata"] = "Makbuz kaydedilemedi!";
+                return RedirectToAction("Index", "Makbuz");
+            }
+
+            Session["MakbuzID"] = sonmakbuz.MakbuzID;
+            Session["DaireID"] = sonmakbuz.DaireID;
 
             MakbuzNoDuzenle();
-            // Başka bir aksiyona yönlendir
+
             return RedirectToAction("Ekle", "Makbuz");
         }
+
 
         public ActionResult Ekle(int? ID)
         {
@@ -716,7 +732,7 @@ namespace ApartmanAidatTakip.Controllers
                 }
                 if (item.EkMiAidatMi == "E")
                 {
-                    tur = "Ek";
+                    tur = "Demirbaş";
                 }
 
                 table.AddCell(new PdfPCell(new Phrase(rowNumber.ToString(), tableFont))); // Add row number
@@ -790,6 +806,19 @@ namespace ApartmanAidatTakip.Controllers
             document.Add(debtorTable);
 
 
+            Font vukFont = new Font(bfArialTurkish, 8, Font.NORMAL);
+
+            Paragraph vukNotu = new Paragraph("Bu belge 213 sayılı Vergi Usul Kanunu hükümlerine tabi değildir. Sadece apartman içi kayıtların tutulması amacıyla düzenlenmiştir.", vukFont);
+
+            vukNotu.SpacingBefore = 10f; // İmza ve bilgilerden sonra aşağıya itiyoruz
+            vukNotu.Alignment = Element.ALIGN_CENTER;
+
+
+            document.Add(vukNotu);
+            // --- VUK Notu Bitti ---
+
+            document.Close();
+
             // Add reminder if debt is greater than 0
 
 
@@ -855,18 +884,18 @@ namespace ApartmanAidatTakip.Controllers
 
             if (DaireNo != null)
             {
-                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.DaireNo == DaireNo && x.Durum == "A").ToList();
+                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.DaireNo == DaireNo && x.Durum == "A").OrderByDescending(x=> x.MakbuzID).ToList();
                 ViewBag.DaireNo = DaireNo;
 
             }
             if (MakbuzNo != null)
             {
-                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.MakbuzNo == MakbuzNo && x.Durum == "A").ToList();
+                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.MakbuzNo == MakbuzNo && x.Durum == "A").OrderByDescending(x => x.MakbuzID).ToList();
                 ViewBag.MakbuzNo = MakbuzNo;
             }
             if (MakbuzNo != null && DaireNo != null)
             {
-                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.MakbuzNo == MakbuzNo && x.DaireNo == DaireNo && x.Durum == "A").ToList();
+                ViewBag.Makbuzlar = db.MakbuzViews.Where(x => x.BinaID == BinaID && x.MakbuzNo == MakbuzNo && x.DaireNo == DaireNo && x.Durum == "A").OrderByDescending(x => x.MakbuzID).ToList();
                 ViewBag.DaireNo = DaireNo;
                 ViewBag.MakbuzNo = MakbuzNo;
             }

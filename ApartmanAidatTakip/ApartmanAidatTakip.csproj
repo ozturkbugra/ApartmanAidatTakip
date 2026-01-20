@@ -194,6 +194,7 @@
     <Compile Include="Controllers\DaireController.cs" />
     <Compile Include="Controllers\MakbuzController.cs" />
     <Compile Include="Controllers\RaporlarController.cs" />
+    <Compile Include="Controllers\TopluMakbuzController.cs" />
     <Compile Include="fonts\HomeController.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
@@ -277,6 +278,12 @@
       <DependentUpon>Model1.edmx</DependentUpon>
     </Compile>
     <Compile Include="Models\Notlar.cs">
+      <DependentUpon>Model1.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\PesinOdemeler.cs">
+      <DependentUpon>Model1.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Models\PesinOdemelerView.cs">
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
     <Compile Include="Models\Tahsilat.cs">
@@ -779,6 +786,9 @@
     <Content Include="Views\Daire\Index.cshtml" />
     <Content Include="Views\Admin\Duyurular.cshtml" />
     <Content Include="Views\AnaSayfa\Notlar.cshtml" />
+    <Content Include="Views\TopluMakbuz\Index.cshtml" />
+    <Content Include="Views\AnaSayfa\PesinOdemeler.cshtml" />
+    <Content Include="Views\Raporlar\TureGoreGelirGiderTarihBazli.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
